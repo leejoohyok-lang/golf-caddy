@@ -758,7 +758,7 @@ async function doSearch(){
 CRITICAL: Output ONLY JSON starting with {`;
   try{
     const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getC(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-5-20251001',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:sys,messages:[{role:'user',content:q}]})});
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:sys,messages:[{role:'user',content:q}]})});
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(`API ${r.status}: ${e.error?.message||''}`);}
     const d=await r.json();
     const txt=d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
@@ -817,7 +817,7 @@ Output ONLY raw JSON starting with {. No markdown.
 CRITICAL: Output ONLY JSON. combinedAdvice must synthesize both sources into one clear recommendation per category.`;
   try{
     const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getC(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-5-20251001',max_tokens:1200,tools:[{type:'web_search_20250305',name:'web_search'}],system:sys,messages:[{role:'user',content:loc+' 현재 날씨'}]})});
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,tools:[{type:'web_search_20250305',name:'web_search'}],system:sys,messages:[{role:'user',content:loc+' 현재 날씨'}]})});
     if(!r.ok)throw new Error('API '+r.status);
     const d=await r.json();
     const txt=d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
@@ -1059,7 +1059,7 @@ Search in Korean. restaurants MUST have exactly 5 items with DIVERSE menu catego
 
   try{
     const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getC(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-5-20251001',max_tokens:2500,tools:[{type:'web_search_20250305',name:'web_search'}],system:sys,messages:[{role:'user',content:name+' 골프장 정보 알려줘'}]})});
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2500,tools:[{type:'web_search_20250305',name:'web_search'}],system:sys,messages:[{role:'user',content:name+' 골프장 정보 알려줘'}]})});
     if(!r.ok)throw new Error('API '+r.status);
     const d=await r.json();
     const txt=d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
@@ -1328,7 +1328,7 @@ Find 5 videos. CRITICAL: Output ONLY JSON starting with {`;
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':getC(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-5-20251001',
+        model:'claude-sonnet-4-5',
         max_tokens:1500,
         tools:[{type:'web_search_20250305',name:'web_search'}],
         system: sys,
