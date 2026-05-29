@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1c3a2a">
+<title>전상헌의 Golf Caddy</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- 카카오맵: 아래 YOUR_KAKAO_KEY를 실제 키로 교체하세요 -->
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_KEY&libraries=services"></script>
+<style>
+:root{
+  --green:#1c3a2a;--green-mid:#2d5c3e;--green-light:#3d7a52;
+  --green-pale:#e8f2ec;--gold:#c8a84b;--gold-light:#f5e6b0;
+  --cream:#f7f4ef;--white:#fff;--text:#1a1a18;
+  --text-mid:#4a4a46;--text-muted:#888880;
+  --border:rgba(28,58,42,0.12);--r:16px;--r-sm:10px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --tab-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overscroll-behavior:none;}
+body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--cream);color:var(--text);-webkit-font-smoothing:antialiased;overflow:hidden;}
+
+/* ── LAYOUT ── */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+.topbar{background:var(--green);padding:calc(var(--safe-top) + 12px) 16px 0;flex-shrink:0;z-index:50;}
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+.bottombar{background:var(--white);border-top:1px solid var(--border);padding:8px 0 calc(var(--safe-bot) + 8px);flex-shrink:0;z-index:50;}
+
+/* ── TOPBAR ── */
+.topbar-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.logo-mark{width:34px;height:34px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.logo-text{font-family:'DM Serif Display',serif;font-size:15px;color:#fff;flex:1;line-height:1.2;}
+.hdr-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:50px;padding:5px 11px;font-size:11px;color:rgba(255,255,255,0.7);cursor:pointer;font-family:inherit;white-space:nowrap;}
+.hdr-btn.ok{background:rgba(110,231,183,0.18);color:#6ee7b7;border-color:rgba(110,231,183,0.3);}
+
+/* key panels */
+.key-panel{display:none;background:rgba(0,0,0,0.22);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
+.key-lbl{font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;}
+.key-row{display:flex;gap:8px;}
+.key-input{flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:9px 12px;font-size:14px;color:white;font-family:inherit;outline:none;}
+.key-save{background:var(--gold);border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--green);cursor:pointer;font-family:inherit;}
+.key-note{font-size:11px;color:rgba(255,255,255,0.38);margin-top:7px;}
+
+/* ── BOTTOM TABS ── */
+.bottombar{display:flex;}
+.btab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;cursor:pointer;transition:all .15s;border:none;background:none;font-family:inherit;}
+.btab-icon{font-size:22px;line-height:1;}
+.btab-label{font-size:10px;font-weight:500;color:var(--text-muted);}
+.btab.active .btab-label{color:var(--green);font-weight:700;}
+.btab.active .btab-icon{filter:drop-shadow(0 1px 3px rgba(28,58,42,.25));}
+
+/* ── PAGES ── */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── SEARCH PAGE ── */
+.search-bar{background:var(--green);padding:0 16px 14px;}
+.search-row{display:flex;gap:8px;align-items:center;}
+.s-wrap{flex:1;position:relative;}
+.s-input{width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:50px;padding:13px 18px 13px 42px;font-size:15px;color:white;font-family:inherit;outline:none;}
+.s-input::placeholder{color:rgba(255,255,255,0.38);}
+.s-input:focus{border-color:var(--gold);background:rgba(255,255,255,0.14);}
+.s-icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:15px;color:rgba(255,255,255,0.45);pointer-events:none;}
+.s-btn{background:var(--gold);border:none;border-radius:50px;padding:13px 18px;font-size:14px;font-weight:700;color:var(--green);font-family:inherit;cursor:pointer;flex-shrink:0;}
+.s-btn:disabled{opacity:.55;}
+.mic-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex-shrink:0;transition:all .2s;}
+.mic-btn.rec{background:rgba(239,68,68,0.28);border-color:#ef4444;animation:mpulse 1s infinite;}
+.mic-btn.proc{background:rgba(200,168,75,0.28);border-color:var(--gold);}
+@keyframes mpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+
+.chips{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;background:var(--white);border-bottom:1px solid var(--border);}
+.chips::-webkit-scrollbar{display:none;}
+.chip{background:var(--cream);border:1px solid var(--border);border-radius:50px;padding:7px 14px;font-size:12px;font-weight:500;color:var(--text-mid);white-space:nowrap;cursor:pointer;}
+.chip:active{background:var(--green);color:white;}
+
+.pad{padding:16px;}
+
+/* empty */
+.empty{text-align:center;padding:48px 16px 24px;}
+.empty-emoji{font-size:52px;margin-bottom:14px;}
+.empty-title{font-family:'DM Serif Display',serif;font-size:21px;color:var(--green);margin-bottom:8px;}
+.empty-desc{font-size:13px;color:var(--text-muted);line-height:1.65;margin-bottom:22px;}
+.eq-list{display:flex;flex-direction:column;gap:8px;}
+.eq{background:var(--white);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px 14px;font-size:13px;color:var(--text-mid);cursor:pointer;display:flex;align-items:center;gap:10px;}
+.eq:active{background:var(--green-pale);}
+.eq::before{content:'⛳';flex-shrink:0;}
+
+/* loading */
+.loading{display:none;padding:40px 0;text-align:center;}
+.loading.on{display:block;}
+.dots{display:flex;justify-content:center;gap:6px;margin-bottom:12px;}
+.dot{width:9px;height:9px;background:var(--green-light);border-radius:50%;animation:bncx 1.2s infinite;}
+.dot:nth-child(2){animation-delay:.2s;}
+.dot:nth-child(3){animation-delay:.4s;}
+@keyframes bncx{0%,80%,100%{transform:translateY(0);opacity:.35;}40%{transform:translateY(-10px);opacity:1;}}
+.loading-txt{font-size:13px;color:var(--text-muted);margin-bottom:8px;}
+.loading-steps{display:flex;flex-direction:column;gap:5px;align-items:center;}
+.lstep{font-size:12px;color:var(--text-muted);opacity:0;transition:opacity .4s;}
+.lstep.on{opacity:1;}
+
+/* result */
+.res{display:none;}
+.res.on{display:block;}
+.res-meta{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.res-badge{background:var(--green);color:white;font-size:10px;font-weight:700;padding:3px 9px;border-radius:50px;}
+.res-query{font-size:12px;color:var(--text-muted);}
+
+.hole-card{background:var(--green);border-radius:var(--r);padding:18px;margin-bottom:12px;position:relative;overflow:hidden;}
+.hole-card::before{content:'';position:absolute;top:-28px;right:-28px;width:110px;height:110px;border-radius:50%;background:rgba(200,168,75,.1);}
+.h-badge{display:inline-block;background:var(--gold);color:var(--green);font-size:11px;font-weight:700;padding:3px 10px;border-radius:50px;margin-bottom:10px;}
+.h-title{font-family:'DM Serif Display',serif;font-size:22px;color:white;line-height:1.2;margin-bottom:4px;}
+.h-sub{font-size:12px;color:rgba(255,255,255,.55);line-height:1.5;}
+.h-stats{display:flex;gap:16px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1);}
+.h-stat-lbl{font-size:9px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.07em;}
+.h-stat-val{font-size:15px;font-weight:700;color:white;margin-top:2px;}
+
+.card{background:var(--white);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;margin-bottom:12px;}
+.card-hd{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--cream);}
+.card-hd-icon{font-size:15px;}
+.card-hd-title{font-size:12px;font-weight:700;color:var(--green);}
+.card-body{padding:14px 16px;}
+
+.haz-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.htag{padding:5px 10px;border-radius:var(--r-sm);font-size:11px;font-weight:600;}
+.htag.danger{background:#fce8e8;color:#8b2020;}
+.htag.warning{background:#fff3e0;color:#7a4a00;}
+.htag.info{background:var(--green-pale);color:var(--green);}
+.haz-desc{font-size:12px;color:var(--text-mid);line-height:1.55;margin-top:6px;}
+
+.strat-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.strat-item:last-child{border-bottom:none;}
+.strat-num{width:24px;height:24px;background:var(--green-pale);color:var(--green);border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.strat-txt{font-size:13px;line-height:1.65;color:var(--text-mid);}
+.strat-txt strong{color:var(--text);font-weight:600;}
+.pro-tip{background:var(--gold-light);border-left:3px solid var(--gold);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:10px 12px;margin-top:10px;font-size:13px;color:#5a4820;line-height:1.6;}
+
+.vid-list{display:flex;flex-direction:column;gap:10px;}
+.vid-card{display:flex;gap:10px;align-items:center;padding:10px;border-radius:var(--r-sm);border:1px solid var(--border);text-decoration:none;color:inherit;}
+.vid-card:active{background:var(--green-pale);}
+.vid-thumb{width:72px;height:48px;background:var(--green-pale);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative;}
+.play{position:absolute;width:22px;height:22px;background:rgba(0,0,0,.52);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:white;}
+.vid-info{flex:1;min-width:0;}
+.vid-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.vid-meta{font-size:11px;color:var(--text-muted);}
+
+.src-row{display:flex;align-items:center;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);}
+.src-dot{width:5px;height:5px;background:var(--green-light);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.src-txt{font-size:10px;color:var(--text-muted);}
+
+.err{background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r);padding:16px;text-align:center;display:none;margin-top:12px;}
+.err.on{display:block;}
+.err p{font-size:13px;color:#7f1d1d;line-height:1.6;}
+
+/* ── WEATHER PAGE ── */
+.weather-bar{background:var(--green);padding:0 16px 14px;}
+.w-row{display:flex;gap:8px;}
+.w-input{flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:50px;padding:13px 18px;font-size:15px;color:white;font-family:inherit;outline:none;}
+.w-input::placeholder{color:rgba(255,255,255,0.38);}
+.w-input:focus{border-color:var(--gold);}
+.w-btn{background:var(--gold);border:none;border-radius:50px;padding:13px 18px;font-size:14px;font-weight:700;color:var(--green);font-family:inherit;cursor:pointer;flex-shrink:0;}
+.w-btn:disabled{opacity:.55;}
+
+.w-card{background:var(--green);border-radius:var(--r);padding:20px;margin-bottom:12px;color:white;}
+.w-loc{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:6px;}
+.w-main{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.w-icon{font-size:52px;line-height:1;}
+.w-temp-wrap{}
+.w-temp{font-family:'DM Serif Display',serif;font-size:52px;line-height:1;}
+.w-cond{font-size:13px;color:rgba(255,255,255,.6);margin-top:4px;}
+.w-score-wrap{margin-left:auto;text-align:center;}
+.w-score{font-size:28px;font-weight:800;color:var(--gold);}
+.w-score-lbl{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;}
+.w-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);}
+.w-stat{text-align:center;}
+.w-stat-lbl{font-size:9px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.w-stat-val{font-size:15px;font-weight:600;}
+
+.advice-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.advice-item:last-child{border-bottom:none;}
+.advice-item strong{color:var(--text);white-space:nowrap;font-size:12px;}
+
+.forecast-row{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.forecast-row::-webkit-scrollbar{display:none;}
+.fc-item{flex-shrink:0;background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;text-align:center;min-width:64px;}
+.fc-day{font-size:10px;color:var(--text-muted);margin-bottom:4px;}
+.fc-icon{font-size:22px;margin-bottom:4px;}
+.fc-temp{font-size:12px;font-weight:600;}
+.fc-rain{font-size:10px;color:#3b82f6;margin-top:2px;}
+
+/* ── LESSON PAGE ── */
+.lesson-filter{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;background:var(--white);border-bottom:1px solid var(--border);}
+.lesson-filter::-webkit-scrollbar{display:none;}
+.lf-chip{background:var(--cream);border:1.5px solid var(--border);border-radius:50px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--text-mid);white-space:nowrap;cursor:pointer;transition:all .15s;flex-shrink:0;}
+.lf-chip.active{background:var(--green);color:white;border-color:var(--green);}
+.lesson-grid{display:flex;flex-direction:column;gap:12px;}
+.lesson-card{background:var(--white);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:all .15s;}
+.lesson-card:active{transform:scale(.98);}
+.lesson-thumb{width:100%;height:180px;background:var(--green);position:relative;display:block;overflow:hidden;}
+.lesson-thumb img{width:100%;height:100%;object-fit:cover;}
+.lesson-thumb-fallback{font-size:48px;opacity:.4;}
+.lesson-play-overlay{position:absolute;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;}
+.lesson-play-btn{width:52px;height:52px;background:rgba(255,255,255,.9);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--green);}
+.lesson-duration{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.7);color:white;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;}
+.lesson-info{padding:12px 14px;}
+.lesson-club-tag{display:inline-block;background:var(--green-pale);color:var(--green);font-size:10px;font-weight:700;padding:3px 8px;border-radius:50px;margin-bottom:6px;}
+.lesson-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:4px;}
+.lesson-desc{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;}
+.lesson-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted);}
+.lesson-point-list{display:flex;flex-direction:column;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.lesson-point{display:flex;gap:6px;font-size:12px;color:var(--text-mid);line-height:1.4;}
+.lesson-point::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;}
+.lesson-loading{display:none;padding:40px 0;text-align:center;}
+.lesson-loading.on{display:block;}
+
+/* ── TTS ── */
+.tts-bar{display:flex;align-items:center;gap:10px;background:var(--green);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;animation:fadeUp .35s ease both;}
+.tts-btn{width:44px;height:44px;border-radius:50%;background:var(--gold);border:none;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;}
+.tts-btn:active{transform:scale(.93);}
+.tts-btn.playing{background:#ef4444;animation:mpulse 1s infinite;}
+.tts-btn.loading{background:rgba(200,168,75,.4);cursor:not-allowed;}
+.tts-info{flex:1;}
+.tts-title{font-size:12px;font-weight:700;color:white;margin-bottom:2px;}
+.tts-desc{font-size:11px;color:rgba(255,255,255,.5);}
+.tts-progress{height:3px;background:rgba(255,255,255,.15);border-radius:50px;margin-top:8px;}
+.tts-progress-bar{height:3px;background:var(--gold);border-radius:50px;width:0%;transition:width .3s;}
+
+/* ── WEATHER COMPARE ── */
+.compare-tabs{display:flex;background:rgba(255,255,255,0.08);border-radius:50px;padding:3px;margin-bottom:14px;}
+.compare-tab{flex:1;text-align:center;padding:7px 4px;font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);border-radius:50px;cursor:pointer;transition:all .2s;}
+.compare-tab.active{background:white;color:var(--green);font-weight:700;}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.compare-col{background:var(--white);border-radius:var(--r);overflow:hidden;border:1px solid var(--border);}
+.compare-col-hd{padding:10px 12px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.03em;}
+.compare-col-hd.norway{background:#003f7f;color:white;}
+.compare-col-hd.korea{background:#cd2e3a;color:white;}
+.compare-col-body{padding:12px;}
+.cmp-temp{font-family:'DM Serif Display',serif;font-size:36px;color:var(--text);text-align:center;line-height:1;margin-bottom:4px;}
+.cmp-cond{text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:10px;}
+.cmp-stat-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.cmp-stat-row:last-child{border-bottom:none;}
+.cmp-stat-lbl{color:var(--text-muted);}
+.cmp-stat-val{font-weight:600;color:var(--text);}
+.diff-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:50px;margin-left:4px;}
+.diff-up{background:#fce8e8;color:#c0392b;}
+.diff-down{background:#e8f5e9;color:#1b7a3e;}
+.diff-same{background:var(--green-pale);color:var(--green);}
+.compare-advice{background:var(--white);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;margin-bottom:12px;}
+.advice-row{display:grid;grid-template-columns:80px 1fr 1fr;gap:0;border-bottom:1px solid var(--border);}
+.advice-row:last-child{border-bottom:none;}
+.advice-row-lbl{padding:10px 10px;background:var(--cream);font-size:11px;font-weight:700;color:var(--green);display:flex;align-items:center;}
+.advice-row-val{padding:10px 10px;font-size:12px;color:var(--text-mid);line-height:1.4;border-left:1px solid var(--border);}
+.advice-row-val.norway-val{background:rgba(0,63,127,0.03);}
+.advice-row-val.korea-val{background:rgba(205,46,58,0.03);}
+.source-tag{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-bottom:3px;}
+.source-tag.norway{background:#003f7f;color:white;}
+.source-tag.korea{background:#cd2e3a;color:white;}
+.forecast-compare{background:var(--white);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;margin-bottom:12px;}
+.fc-compare-row{display:grid;grid-template-columns:56px 1fr 1fr;border-bottom:1px solid var(--border);}
+.fc-compare-row:last-child{border-bottom:none;}
+.fc-compare-row:first-child{background:var(--cream);}
+.fc-day-col{padding:10px 8px;font-size:11px;font-weight:700;color:var(--green);display:flex;align-items:center;justify-content:center;}
+.fc-data-col{padding:10px 10px;border-left:1px solid var(--border);text-align:center;}
+.fc-data-col.norway-col{background:rgba(0,63,127,0.03);}
+.fc-data-col.korea-col{background:rgba(205,46,58,0.03);}
+.fc-col-hd{font-size:10px;font-weight:700;color:var(--text-muted);}
+.fc-col-temp{font-size:13px;font-weight:600;color:var(--text);margin:2px 0;}
+.fc-col-rain{font-size:10px;color:#3b82f6;}
+.fc-col-icon{font-size:18px;}
+
+/* ── HOLEINONE PAGE ── */
+.calc-hd{background:var(--green);border-radius:var(--r);padding:18px;margin-bottom:12px;color:white;}
+.calc-hd-title{font-family:'DM Serif Display',serif;font-size:21px;margin-bottom:4px;}
+.calc-hd-sub{font-size:12px;color:rgba(255,255,255,.55);}
+
+.field{margin-bottom:18px;}
+.field-lbl{font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;justify-content:space-between;}
+.field-lbl span{font-weight:600;color:var(--green);}
+.slider{width:100%;accent-color:var(--green);height:4px;}
+.opts{display:flex;gap:8px;flex-wrap:wrap;}
+.opt{padding:9px 16px;border-radius:50px;border:1.5px solid var(--border);font-size:13px;font-weight:500;cursor:pointer;background:var(--cream);color:var(--text-mid);transition:all .15s;}
+.opt.active{background:var(--green);color:white;border-color:var(--green);}
+.opt:active{transform:scale(.96);}
+
+.prob-card{background:var(--green);border-radius:var(--r);padding:20px;margin-bottom:12px;color:white;}
+.prob-lbl{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.prob-num-row{display:flex;align-items:baseline;gap:6px;margin-bottom:4px;}
+.prob-num{font-family:'DM Serif Display',serif;font-size:52px;color:var(--gold);line-height:1;}
+.prob-unit{font-size:15px;color:rgba(255,255,255,.5);}
+.prob-bar-bg{background:rgba(255,255,255,.1);border-radius:50px;height:5px;margin:12px 0;}
+.prob-bar{height:5px;border-radius:50px;background:var(--gold);transition:width .8s ease;}
+.prob-desc{font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:14px;}
+.prob-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.prob-stat{background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;}
+.prob-stat-lbl{font-size:9px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.prob-stat-val{font-size:14px;font-weight:600;}
+
+.cost-rows{padding:0 16px;}
+.cost-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.cost-row:last-child{border-bottom:none;}
+.cost-name{color:var(--text-mid);}
+.cost-amt{font-weight:600;}
+.cost-total-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--green);border-radius:0 0 var(--r) var(--r);}
+.cost-total-lbl{font-size:12px;color:rgba(255,255,255,.6);}
+.cost-total-val{font-family:'DM Serif Display',serif;font-size:22px;color:var(--gold);}
+
+/* ── SETTINGS PAGE ── */
+.settings-list{display:flex;flex-direction:column;gap:0;}
+.setting-item{background:var(--white);padding:16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.setting-item:first-child{border-radius:var(--r) var(--r) 0 0;}
+.setting-item:last-child{border-radius:0 0 var(--r) var(--r);border-bottom:none;}
+.setting-icon{font-size:22px;width:36px;text-align:center;}
+.setting-info{flex:1;}
+.setting-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.setting-desc{font-size:12px;color:var(--text-muted);}
+.setting-status{font-size:12px;font-weight:600;padding:4px 10px;border-radius:50px;}
+.status-ok{background:#e8f5e9;color:#1b5e20;}
+.status-no{background:#fce8e8;color:#8b2020;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(var(--tab-h) + var(--safe-bot) + 12px);left:50%;transform:translateX(-50%);background:rgba(28,58,42,.95);color:white;padding:10px 20px;border-radius:50px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;}
+.toast.on{opacity:1;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fade-up{animation:fadeUp .35s ease both;}
+
+/* ── GOLF INFO PAGE ── */
+.info-search-bar{background:var(--green);padding:0 16px 14px;}
+.info-row{display:flex;gap:8px;}
+.info-input{flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:50px;padding:13px 18px;font-size:15px;color:white;font-family:inherit;outline:none;}
+.info-input::placeholder{color:rgba(255,255,255,0.38);}
+.info-input:focus{border-color:var(--gold);}
+.info-btn{background:var(--gold);border:none;border-radius:50px;padding:13px 18px;font-size:14px;font-weight:700;color:var(--green);font-family:inherit;cursor:pointer;flex-shrink:0;}
+.info-btn:disabled{opacity:.55;}
+
+.overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;}
+.ov-item{background:var(--cream);border-radius:var(--r-sm);padding:10px 12px;}
+.ov-lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.ov-val{font-size:13px;font-weight:600;color:var(--text);line-height:1.4;}
+
+.course-item{padding:10px 0;border-bottom:1px solid var(--border);}
+.course-item:last-child{border-bottom:none;}
+.course-name{font-size:13px;font-weight:700;color:var(--green);margin-bottom:4px;}
+.course-detail{font-size:12px;color:var(--text-mid);line-height:1.55;}
+
+.rest-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+.rest-item:last-child{border-bottom:none;}
+.rest-num{width:22px;height:22px;background:var(--gold-light);color:#5a4820;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.rest-info{flex:1;}
+.rest-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.rest-desc{font-size:12px;color:var(--text-muted);line-height:1.4;}
+.rest-dist{font-size:11px;color:var(--green);font-weight:600;margin-top:2px;}
+
+.nearby-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center;}
+.nearby-item:last-child{border-bottom:none;}
+.nearby-icon{font-size:20px;flex-shrink:0;}
+.nearby-info{flex:1;}
+.nearby-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.nearby-detail{font-size:12px;color:var(--text-muted);}
+.nearby-dist-badge{background:var(--green-pale);color:var(--green);font-size:11px;font-weight:700;padding:3px 8px;border-radius:50px;white-space:nowrap;}
+
+#kakaoMap{width:100%;height:200px;border-radius:var(--r);margin-bottom:12px;background:var(--green-pale);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="logo-mark">⛳</div>
+      <span class="logo-text">전상헌의 Golf Caddy</span>
+      <button class="hdr-btn" id="btnClaude" onclick="togglePanel('keyPanel')">🔑 Claude</button>
+      <button class="hdr-btn" id="btnOAI" onclick="togglePanel('oaiPanel')">🎙 Voice</button>
+    </div>
+    <div class="key-panel" id="keyPanel">
+      <div class="key-lbl">Anthropic API Key</div>
+      <div class="key-row">
+        <input class="key-input" id="claudeKey" type="password" placeholder="sk-ant-...">
+        <button class="key-save" onclick="saveClaudeKey()">저장</button>
+      </div>
+      <div class="key-note" id="claudeStatus">홀 공략 · 날씨 AI에 사용됩니다.</div>
+    </div>
+    <div class="key-panel" id="oaiPanel">
+      <div class="key-lbl">OpenAI API Key (Whisper 음성인식)</div>
+      <div class="key-row">
+        <input class="key-input" id="oaiKey" type="password" placeholder="sk-...">
+        <button class="key-save" onclick="saveOAIKey()">저장</button>
+      </div>
+      <div class="key-note" id="oaiStatus">기존 OpenAI 키 그대로 사용 가능합니다.</div>
+    </div>
+  </div>
+
+  <!-- SCROLL AREA (pages) -->
+  <div class="scroll-area" id="scrollArea">
+
+    <!-- PAGE: 홀 공략 -->
+    <div class="page active" id="page-hole">
+      <div class="search-bar">
+        <div class="search-row">
+          <div class="s-wrap">
+            <span class="s-icon">🔍</span>
+            <input class="s-input" id="searchInput" type="text" placeholder="레이크사이드CC 1번홀 공략" autocomplete="off">
+          </div>
+          <button class="s-btn" id="searchBtn" onclick="doSearch()">검색</button>
+          <div class="mic-btn" id="micBtn" onclick="toggleMic('hole')">🎙</div>
+        </div>
+      </div>
+      <div class="chips">
+        <div class="chip" onclick="setQ('레이크사이드CC 1번홀 공략법')">레이크사이드CC 1번홀</div>
+        <div class="chip" onclick="setQ('남부CC 파3홀 공략')">남부CC 파3홀</div>
+        <div class="chip" onclick="setQ('한양CC 18번홀 어프로치')">한양CC 18번홀</div>
+        <div class="chip" onclick="setQ('제주 핀크스GC 공략')">제주 핀크스GC</div>
+        <div class="chip" onclick="setQ('가평베네스트 7번홀')">가평베네스트 7번홀</div>
+      </div>
+      <div class="pad">
+        <div class="empty" id="holeEmpty">
+          <div class="empty-emoji">🏌️</div>
+          <div class="empty-title">어떤 홀을 공략할까요?</div>
+          <div class="empty-desc">골프장·홀 번호 입력하면<br>AI가 실시간으로 찾아드려요</div>
+          <div class="eq-list">
+            <div class="eq" onclick="setQ('레이크사이드CC 1번홀 공략법 알려줘')">레이크사이드CC 1번홀 공략법 알려줘</div>
+            <div class="eq" onclick="setQ('남부CC 파3홀 클럽 선택 팁')">남부CC 파3홀 클럽 선택 팁</div>
+            <div class="eq" onclick="setQ('안양CC 16번홀 벙커 탈출법')">안양CC 16번홀 벙커 탈출법</div>
+            <div class="eq" onclick="setQ('가평베네스트CC 전체 코스 공략')">가평베네스트CC 전체 코스 공략</div>
+          </div>
+        </div>
+        <div class="loading" id="holeLoading">
+          <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          <div class="loading-txt">검색 중...</div>
+          <div class="loading-steps">
+            <div class="lstep" id="ls1">🌐 웹에서 코스 정보 수집 중</div>
+            <div class="lstep" id="ls2">📹 유튜브 영상 탐색 중</div>
+            <div class="lstep" id="ls3">🤖 AI가 공략법 분석 중</div>
+          </div>
+        </div>
+        <div class="err" id="holeErr"><p id="holeErrMsg"></p></div>
+        <div class="res" id="holeRes"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: 날씨 -->
+    <div class="page" id="page-weather">
+      <div class="weather-bar">
+        <div class="w-row">
+          <input class="w-input" id="weatherInput" type="text" placeholder="지역 입력 (예: 용인, 제주)">
+          <button class="w-btn" id="weatherBtn" onclick="doWeather()">검색</button>
+          <div class="mic-btn" id="wMicBtn" onclick="toggleMic('weather')">🎙</div>
+        </div>
+      </div>
+      <div class="pad">
+        <div class="empty" id="weatherEmpty">
+          <div class="empty-emoji">🌤</div>
+          <div class="empty-title">골프장 날씨 확인</div>
+          <div class="empty-desc">지역을 입력하면 현재 날씨와<br>라운딩 적합도를 알려드려요</div>
+          <div class="eq-list">
+            <div class="eq" onclick="setW('용인')">용인 (레이크사이드CC 근처)</div>
+            <div class="eq" onclick="setW('제주')">제주 (핀크스GC 근처)</div>
+            <div class="eq" onclick="setW('가평')">가평 (베네스트CC 근처)</div>
+            <div class="eq" onclick="setW('서울')">서울 (한양CC, 남부CC 근처)</div>
+          </div>
+        </div>
+        <div class="loading" id="weatherLoading">
+          <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          <div class="loading-txt">날씨 불러오는 중...</div>
+        </div>
+        <div class="err" id="weatherErr"><p id="weatherErrMsg"></p></div>
+        <div id="weatherRes" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: 홀인원 -->
+    <div class="page" id="page-calc">
+      <div class="pad">
+        <div class="calc-hd fade-up">
+          <div class="calc-hd-title">홀인원 확률 계산기</div>
+          <div class="calc-hd-sub">나의 조건으로 홀인원 확률을 계산해보세요</div>
+        </div>
+        <div class="card fade-up">
+          <div class="card-body">
+            <div class="field">
+              <div class="field-lbl">나이 <span id="ageVal">45세</span></div>
+              <input class="slider" type="range" id="ageSlider" min="20" max="80" value="45" oninput="updateCalc()">
+            </div>
+            <div class="field">
+              <div class="field-lbl">핸디캡 <span id="hcpVal">18</span></div>
+              <input class="slider" type="range" id="hcpSlider" min="0" max="36" value="18" oninput="updateCalc()">
+            </div>
+            <div class="field">
+              <div class="field-lbl">연간 라운드 수 <span id="rndVal">20회</span></div>
+              <input class="slider" type="range" id="rndSlider" min="1" max="100" value="20" oninput="updateCalc()">
+            </div>
+            <div class="field">
+              <div class="field-lbl">코스 유형</div>
+              <div class="opts">
+                <div class="opt active" data-course="member" onclick="selOpt(this,'course')">회원제</div>
+                <div class="opt" data-course="public" onclick="selOpt(this,'course')">퍼블릭</div>
+                <div class="opt" data-course="resort" onclick="selOpt(this,'course')">리조트</div>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <div class="field-lbl">실력 자가평가</div>
+              <div class="opts">
+                <div class="opt" data-skill="beginner" onclick="selOpt(this,'skill')">입문자</div>
+                <div class="opt active" data-skill="amateur" onclick="selOpt(this,'skill')">아마추어</div>
+                <div class="opt" data-skill="advanced" onclick="selOpt(this,'skill')">상급자</div>
+                <div class="opt" data-skill="scratch" onclick="selOpt(this,'skill')">싱글</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="prob-card fade-up" id="probCard">
+          <div class="prob-lbl">⛳ 홀인원 예상 확률</div>
+          <div class="prob-num-row">
+            <span class="prob-num" id="probNum">0.8</span>
+            <span class="prob-unit">% / 라운드</span>
+          </div>
+          <div class="prob-bar-bg"><div class="prob-bar" id="probBar" style="width:8%"></div></div>
+          <div class="prob-desc" id="probDesc"></div>
+          <div class="prob-grid">
+            <div class="prob-stat"><div class="prob-stat-lbl">평생 예상</div><div class="prob-stat-val" id="lifeVal">-</div></div>
+            <div class="prob-stat"><div class="prob-stat-lbl">몇 라운드마다</div><div class="prob-stat-val" id="rndNeeded">-</div></div>
+          </div>
+        </div>
+        <div class="card fade-up">
+          <div class="card-hd"><span class="card-hd-icon">🎉</span><span class="card-hd-title">홀인원 축하 예상 비용</span></div>
+          <div class="card-body">
+            <div class="field">
+              <div class="field-lbl">동반자 수 <span id="partyVal">3명</span></div>
+              <input class="slider" type="range" id="partySlider" min="1" max="7" value="3" oninput="updateCost()">
+            </div>
+            <div class="opts" style="margin-bottom:0">
+              <div class="opt active" data-venue="casual" onclick="selOpt(this,'venue');updateCost()">일반 식사</div>
+              <div class="opt" data-venue="fine" onclick="selOpt(this,'venue');updateCost()">고급 식사</div>
+              <div class="opt" data-venue="party" onclick="selOpt(this,'venue');updateCost()">파티룸</div>
+            </div>
+          </div>
+          <div class="cost-rows" id="costRows"></div>
+          <div class="cost-total-bar">
+            <span class="cost-total-lbl">예상 총 비용</span>
+            <span class="cost-total-val" id="costTotal">₩ 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: 골프장 정보 -->
+    <div class="page" id="page-info">
+      <div class="info-search-bar">
+        <div class="info-row">
+          <input class="info-input" id="infoInput" type="text" placeholder="골프장명 입력 (예: 레이크사이드CC)">
+          <button class="info-btn" id="infoBtn" onclick="doGolfInfo()">검색</button>
+        </div>
+      </div>
+      <div class="pad">
+        <div class="empty" id="infoEmpty">
+          <div class="empty-emoji">🏌️</div>
+          <div class="empty-title">골프장 정보 검색</div>
+          <div class="empty-desc">골프장명을 입력하면<br>개요·코스·맛집·주변 골프장을 알려드려요</div>
+          <div class="eq-list">
+            <div class="eq" onclick="setInfo('레이크사이드CC')">레이크사이드CC</div>
+            <div class="eq" onclick="setInfo('남부CC')">남부CC</div>
+            <div class="eq" onclick="setInfo('핀크스GC')">핀크스GC 제주</div>
+            <div class="eq" onclick="setInfo('가평베네스트CC')">가평베네스트CC</div>
+          </div>
+        </div>
+        <div class="loading" id="infoLoading">
+          <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          <div class="loading-txt">골프장 정보 수집 중...</div>
+          <div class="loading-steps">
+            <div class="lstep" id="il1">🏌️ 골프장 기본 정보 검색 중</div>
+            <div class="lstep" id="il2">🍽 인근 맛집 탐색 중</div>
+            <div class="lstep" id="il3">📍 주변 골프장 탐색 중</div>
+          </div>
+        </div>
+        <div class="err" id="infoErr"><p id="infoErrMsg"></p></div>
+        <div id="infoRes" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: 레슨 -->
+    <div class="page" id="page-lesson">
+      <div style="background:var(--green);padding:12px 16px 0;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div>
+            <div style="font-family:'DM Serif Display',serif;font-size:18px;color:white;">임진한 프로 레슨</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;">클럽별 스윙 레슨 · YouTube</div>
+          </div>
+          <button onclick="loadLessons(currentClub)" style="margin-left:auto;background:var(--gold);border:none;border-radius:50px;padding:7px 14px;font-size:12px;font-weight:700;color:var(--green);cursor:pointer;font-family:inherit;">🔄 새로고침</button>
+        </div>
+      </div>
+      <div class="lesson-filter" id="lessonFilter">
+        <div class="lf-chip active" data-club="드라이버" onclick="selectClub(this)">🏌️ 드라이버</div>
+        <div class="lf-chip" data-club="아이언" onclick="selectClub(this)">🔩 아이언</div>
+        <div class="lf-chip" data-club="웨지" onclick="selectClub(this)">⛏ 웨지</div>
+        <div class="lf-chip" data-club="퍼터" onclick="selectClub(this)">🏒 퍼터</div>
+        <div class="lf-chip" data-club="어프로치" onclick="selectClub(this)">🎯 어프로치</div>
+        <div class="lf-chip" data-club="벙커샷" onclick="selectClub(this)">🏖 벙커샷</div>
+        <div class="lf-chip" data-club="스윙기초" onclick="selectClub(this)">📐 스윙기초</div>
+      </div>
+      <div class="pad">
+        <div class="lesson-loading" id="lessonLoading">
+          <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          <div class="loading-txt" id="lessonLoadingTxt">유튜브에서 레슨 영상 수집 중...</div>
+        </div>
+        <div class="err" id="lessonErr"><p id="lessonErrMsg"></p></div>
+        <div class="lesson-grid" id="lessonGrid"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: 설정 -->
+    <div class="page" id="page-settings">
+      <div class="pad">
+        <div style="font-family:'DM Serif Display',serif;font-size:21px;color:var(--green);margin-bottom:16px;margin-top:8px;">설정</div>
+        <div class="card">
+          <div class="settings-list" id="settingsList"></div>
+        </div>
+        <div style="margin-top:20px;padding:16px;background:var(--white);border-radius:var(--r);border:1px solid var(--border);">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">API 키 재입력</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;">상단 🔑 Claude / 🎙 Voice 버튼을 눌러 키를 입력하세요.</div>
+          <button onclick="clearKeys()" style="background:#fce8e8;border:none;border-radius:var(--r-sm);padding:10px 16px;font-size:13px;font-weight:600;color:#8b2020;cursor:pointer;font-family:inherit;width:100%;">🗑 저장된 키 모두 삭제</button>
+        </div>
+        <div style="margin-top:16px;text-align:center;font-size:11px;color:var(--text-muted);line-height:1.7;">
+          Golf Caddy v1.0<br>Powered by Claude AI + Whisper
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scroll-area -->
+
+  <!-- BOTTOM TAB BAR -->
+  <div class="bottombar">
+    <button class="btab active" id="btab-hole" onclick="switchPage('hole')">
+      <span class="btab-icon">🏌️</span>
+      <span class="btab-label">홀 공략</span>
+    </button>
+    <button class="btab" id="btab-weather" onclick="switchPage('weather')">
+      <span class="btab-icon">🌤</span>
+      <span class="btab-label">날씨</span>
+    </button>
+    <button class="btab" id="btab-calc" onclick="switchPage('calc')">
+      <span class="btab-icon">🎯</span>
+      <span class="btab-label">홀인원</span>
+    </button>
+    <button class="btab" id="btab-info" onclick="switchPage('info')">
+      <span class="btab-icon">🏌️</span>
+      <span class="btab-label">골프장</span>
+    </button>
+    <button class="btab" id="btab-lesson" onclick="switchPage('lesson')">
+      <span class="btab-icon">🎬</span>
+      <span class="btab-label">레슨</span>
+    </button>
+    <button class="btab" id="btab-settings" onclick="switchPage('settings')">
+      <span class="btab-icon">⚙️</span>
+      <span class="btab-label">설정</span>
+    </button>
+  </div>
+
+</div><!-- /app -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API='https://api.anthropic.com/v1/messages';
+
+// ── KEYS ─────────────────────────────
+const getC=()=>localStorage.getItem('gc_claude')||'';
+const getO=()=>localStorage.getItem('gc_oai')||'';
+
+function saveClaudeKey(){
+  const v=document.getElementById('claudeKey').value.trim();
+  if(!v)return;
+  localStorage.setItem('gc_claude',v);
+  document.getElementById('claudeStatus').textContent='✅ 저장완료!';
+  document.getElementById('claudeStatus').style.color='#6ee7b7';
+  document.getElementById('btnClaude').textContent='🔑 Claude ✓';
+  document.getElementById('btnClaude').classList.add('ok');
+  setTimeout(()=>closeAllPanels(),900);
+  updateSettingsList();
+}
+function saveOAIKey(){
+  const v=document.getElementById('oaiKey').value.trim();
+  if(!v)return;
+  localStorage.setItem('gc_oai',v);
+  document.getElementById('oaiStatus').textContent='✅ 저장완료!';
+  document.getElementById('oaiStatus').style.color='#6ee7b7';
+  document.getElementById('btnOAI').textContent='🎙 Voice ✓';
+  document.getElementById('btnOAI').classList.add('ok');
+  setTimeout(()=>closeAllPanels(),900);
+  updateSettingsList();
+}
+function clearKeys(){
+  if(!confirm('저장된 API 키를 모두 삭제할까요?'))return;
+  localStorage.removeItem('gc_claude');localStorage.removeItem('gc_oai');
+  location.reload();
+}
+function togglePanel(id){
+  const p=document.getElementById(id);
+  const isOpen=p.style.display==='block';
+  closeAllPanels();
+  if(!isOpen){p.style.display='block';p.querySelector('.key-input').focus();}
+}
+function closeAllPanels(){
+  document.querySelectorAll('.key-panel').forEach(p=>p.style.display='none');
+}
+
+// ── PAGE NAV ─────────────────────────
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('btab-'+name).classList.add('active');
+  document.getElementById('scrollArea').scrollTop=0;
+  closeAllPanels();
+  // Auto-load lessons on first visit
+  if(name==='lesson' && document.getElementById('lessonGrid').innerHTML===''){
+    renderLessonsFromDB(currentClub);
+  }
+}
+
+// ── TOAST ────────────────────────────
+let toastTimer=null;
+function toast(msg,dur=2800){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('on'),dur);
+}
+
+// ── HOLE SEARCH ──────────────────────
+function setQ(q){document.getElementById('searchInput').value=q;doSearch();}
+
+function showHoleLoading(){
+  document.getElementById('holeEmpty').style.display='none';
+  document.getElementById('holeLoading').classList.add('on');
+  document.getElementById('holeRes').classList.remove('on');
+  document.getElementById('holeRes').innerHTML='';
+  document.getElementById('holeErr').classList.remove('on');
+  ['ls1','ls2','ls3'].forEach((id,i)=>setTimeout(()=>document.getElementById(id).classList.add('on'),i*1200));
+}
+function hideHoleLoading(){
+  document.getElementById('holeLoading').classList.remove('on');
+  ['ls1','ls2','ls3'].forEach(id=>document.getElementById(id).classList.remove('on'));
+}
+
+async function doSearch(){
+  const q=document.getElementById('searchInput').value.trim();
+  if(!q)return;
+  if(!getC()){togglePanel('keyPanel');toast('⚠️ Claude API 키를 먼저 입력해주세요');return;}
+  const btn=document.getElementById('searchBtn');
+  btn.disabled=true;btn.textContent='검색중';showHoleLoading();
+  const sys=`You are a Korean golf AI caddy. Use web_search to find real info. Output ONLY raw JSON (no markdown, no fences). Start with {.
+{"courseName":"골프장명","holeName":"1번홀 파4","par":"4","distance":"385m","difficulty":"상","holeChar":"홀 특성","hazards":[{"type":"danger","label":"OB","desc":"설명"}],"strategies":[{"title":"티샷","detail":"공략법"},{"title":"세컨샷","detail":"공략법"},{"title":"어프로치","detail":"공략법"},{"title":"퍼팅","detail":"팁"}],"proTip":"핵심 팁","videos":[{"title":"제목","channel":"채널","url":"https://www.youtube.com/results?search_query=골프장+홀+공략"}],"sources":"출처"}
+CRITICAL: Output ONLY JSON starting with {`;
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getC(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5-20251001',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:sys,messages:[{role:'user',content:q}]})});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(`API ${r.status}: ${e.error?.message||''}`);}
+    const d=await r.json();
+    const txt=d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    if(!txt)throw new Error('응답 없음');
+    let raw=txt.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    const s=raw.indexOf('{'),e=raw.lastIndexOf('}');
+    if(s===-1||e<=s)throw new Error('결과 파싱 실패. 다시 시도해주세요.');
+    renderHole(JSON.parse(raw.substring(s,e+1)),q);
+  }catch(e){hideHoleLoading();document.getElementById('holeErrMsg').textContent='오류: '+e.message;document.getElementById('holeErr').classList.add('on');}
+  finally{btn.disabled=false;btn.textContent='검색';}
+}
+
+function renderHole(r,q){
+  hideHoleLoading();
+  const res=document.getElementById('holeRes');res.classList.add('on');
+  const dc=r.difficulty==='상'?'#ef4444':r.difficulty==='중'?'#f59e0b':'#22c55e';
+  const holeSummary=`${r.courseName} ${r.holeName}. 파${r.par}, 거리 ${r.distance}, 난이도 ${r.difficulty}. ${r.holeChar}. ${(r.strategies||[]).slice(0,3).map(s=>s.title+': '+s.detail).join('. ')}. ${r.proTip?'프로 팁: '+r.proTip:''}`;
+  res.innerHTML=`
+  <div class="res-meta"><span class="res-badge">AI 검색</span><span class="res-query">"${q}"</span></div>
+  <div class="hole-card fade-up">
+    <div class="h-badge">⛳ ${r.holeName||'홀 정보'}</div>
+    <div class="h-title">${r.courseName||''}</div>
+    <div class="h-sub">${r.holeChar||''}</div>
+    <div class="h-stats">
+      <div><div class="h-stat-lbl">Par</div><div class="h-stat-val">${r.par||'-'}</div></div>
+      <div><div class="h-stat-lbl">거리</div><div class="h-stat-val" style="font-size:13px">${r.distance||'-'}</div></div>
+      <div><div class="h-stat-lbl">난이도</div><div class="h-stat-val" style="color:${dc}">${r.difficulty||'-'}</div></div>
+    </div>
+  </div>
+  ${r.hazards?.length?`<div class="card fade-up"><div class="card-hd"><span class="card-hd-icon">⚠️</span><span class="card-hd-title">주요 위험요소</span></div><div class="card-body"><div class="haz-tags">${r.hazards.map(h=>`<div class="htag ${h.type||'info'}">${h.label}</div>`).join('')}</div>${r.hazards.map(h=>`<div class="haz-desc"><strong>${h.label}</strong> — ${h.desc}</div>`).join('')}</div></div>`:''}
+  ${r.strategies?.length?`<div class="card fade-up"><div class="card-hd"><span class="card-hd-icon">🎯</span><span class="card-hd-title">홀 공략법</span></div><div class="card-body">${r.strategies.map((s,i)=>`<div class="strat-item"><div class="strat-num">${i+1}</div><div class="strat-txt"><strong>${s.title}</strong><br>${s.detail}</div></div>`).join('')}${r.proTip?`<div class="pro-tip">💡 <strong>Pro Tip</strong> — ${r.proTip}</div>`:''}</div></div>`:''}
+  ${r.videos?.length?`<div class="card fade-up"><div class="card-hd"><span class="card-hd-icon">📹</span><span class="card-hd-title">관련 유튜브 영상</span></div><div class="card-body"><div class="vid-list">${r.videos.map(v=>`<a class="vid-card" href="${v.url}" target="_blank"><div class="vid-thumb">🎬<div class="play">▶</div></div><div class="vid-info"><div class="vid-title">${v.title}</div><div class="vid-meta">${v.channel||'YouTube'}</div></div></a>`).join('')}</div></div></div>`:''}
+  <div class="src-row"><div class="src-dot"></div><span class="src-txt">${r.sources||'웹 검색 기반 AI 분석'} · 실제와 다를 수 있음</span></div>`;
+}
+
+// ── WEATHER ──────────────────────────
+function setW(q){document.getElementById('weatherInput').value=q;doWeather();}
+
+async function doWeather(){
+  const loc=document.getElementById('weatherInput').value.trim();
+  if(!loc)return;
+  if(!getC()){togglePanel('keyPanel');toast('⚠️ Claude API 키를 먼저 입력해주세요');return;}
+  document.getElementById('weatherEmpty').style.display='none';
+  document.getElementById('weatherLoading').classList.add('on');
+  document.getElementById('weatherRes').style.display='none';
+  document.getElementById('weatherErr').classList.remove('on');
+  const btn=document.getElementById('weatherBtn');btn.disabled=true;btn.textContent='검색중';
+  const sys=`You are a Korean golf weather AI. Search for current weather data from TWO sources for the requested Korean location:
+1. Norwegian Meteorological Institute (yr.no) - search "yr.no [location]"
+2. Korean Meteorological Administration (KMA) - search "기상청 [location] 날씨"
+
+Then combine the advice from both sources into a single unified recommendation per category.
+
+Output ONLY raw JSON starting with {. No markdown.
+{"location":"지역명","norway":{"temp":"22","feelsLike":"20","condition":"맑음","conditionIcon":"☀️","humidity":"45","windSpeed":"3.2","windDir":"북동","uvIndex":"6","golfScore":"88","forecast":[{"day":"내일","icon":"⛅","high":"24","low":"12","rain":"20%"},{"day":"모레","icon":"🌧","high":"18","low":"10","rain":"80%"},{"day":"3일후","icon":"☀️","high":"25","low":"13","rain":"5%"}]},"korea":{"temp":"23","feelsLike":"21","condition":"구름조금","conditionIcon":"⛅","humidity":"50","windSpeed":"2.8","windDir":"남서","uvIndex":"7","golfScore":"85","forecast":[{"day":"내일","icon":"⛅","high":"25","low":"13","rain":"15%"},{"day":"모레","icon":"🌧","high":"19","low":"11","rain":"70%"},{"day":"3일후","icon":"☀️","high":"26","low":"14","rain":"10%"}]},"combinedAdvice":[{"category":"복장","advice":"두 기상청 데이터를 종합한 복장 조언"},{"category":"클럽","advice":"두 데이터 종합한 클럽 조언"},{"category":"그린","advice":"그린 상태 종합 조언"},{"category":"최적 시간","advice":"두 데이터 기반 최적 라운딩 시간"}]}
+CRITICAL: Output ONLY JSON. combinedAdvice must synthesize both sources into one clear recommendation per category.`;
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getC(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5-20251001',max_tokens:1200,tools:[{type:'web_search_20250305',name:'web_search'}],system:sys,messages:[{role:'user',content:loc+' 현재 날씨'}]})});
+    if(!r.ok)throw new Error('API '+r.status);
+    const d=await r.json();
+    const txt=d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    let raw=txt.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    const s=raw.indexOf('{'),e=raw.lastIndexOf('}');
+    if(s===-1||e<=s)throw new Error('파싱 실패');
+    renderWeather(JSON.parse(raw.substring(s,e+1)));
+  }catch(e){
+    document.getElementById('weatherLoading').classList.remove('on');
+    document.getElementById('weatherErrMsg').textContent='오류: '+e.message;
+    document.getElementById('weatherErr').classList.add('on');
+  }finally{btn.disabled=false;btn.textContent='검색';}
+}
+
+function renderWeather(w){
+  document.getElementById('weatherLoading').classList.remove('on');
+  const res=document.getElementById('weatherRes');res.style.display='block';
+  const n=w.norway||{};const k=w.korea||{};
+
+  function diffBadge(a,b,unit=''){
+    const na=parseFloat(a),nb=parseFloat(b);
+    if(isNaN(na)||isNaN(nb))return '';
+    const d=(na-nb).toFixed(1);
+    if(Math.abs(d)<0.1)return '<span class="diff-badge diff-same">동일</span>';
+    return d>0?`<span class="diff-badge diff-up">+${d}${unit}</span>`:`<span class="diff-badge diff-down">${d}${unit}</span>`;
+  }
+
+  function scoreColor(s){return +s>=80?'#22c55e':+s>=50?'#f59e0b':'#ef4444';}
+
+  const forecastRows=(n.forecast||[]).map((nf,i)=>{
+    const kf=(k.forecast||[])[i]||{};
+    return `<div class="fc-compare-row">
+      <div class="fc-day-col">${nf.day||''}</div>
+      <div class="fc-data-col norway-col">
+        <div class="fc-col-icon">${nf.icon||'🌤'}</div>
+        <div class="fc-col-temp">${nf.high}° / ${nf.low}°</div>
+        <div class="fc-col-rain">🌧 ${nf.rain}</div>
+      </div>
+      <div class="fc-data-col korea-col">
+        <div class="fc-col-icon">${kf.icon||'🌤'}</div>
+        <div class="fc-col-temp">${kf.high||'-'}° / ${kf.low||'-'}°</div>
+        <div class="fc-col-rain">🌧 ${kf.rain||'-'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Use combinedAdvice from API, fallback to merging manually
+  const adviceSrc = w.combinedAdvice || (n.advice||[]).map((na,i)=>{
+    const ka=(k.advice||[])[i]||{};
+    return {category:na.category, advice: na.advice===ka.advice ? na.advice : [na.advice,ka.advice].filter(Boolean).join(' / ')};
+  });
+  const combinedAdvice = adviceSrc.map(a=>`<div class="advice-item">
+    <strong>${a.category}</strong>
+    <span style="margin-left:8px;color:var(--text-mid)">${a.advice}</span>
+  </div>`).join('');
+
+  const weatherSummary=`${w.location} 날씨입니다. 노르웨이 기상청 기준 현재 기온 ${n.temp}도, ${n.condition}. 라운딩 지수 ${n.golfScore}점. 국내 기상청 기준 ${k.temp}도, ${k.condition}. 라운딩 지수 ${k.golfScore}점. ${(w.combinedAdvice||[]).map(a=>a.category+': '+a.advice).join('. ')}`;
+  res.innerHTML=`
+    ${makeTTSBar('weatherTTS', weatherSummary)}
+    <div style="background:var(--green);border-radius:var(--r);padding:16px;margin-bottom:12px;">
+      <div style="font-size:12px;color:rgba(255,255,255,.45);margin-bottom:10px;">📍 ${w.location} · 기상청 비교</div>
+      <div class="compare-grid">
+        <div class="compare-col">
+          <div class="compare-col-hd norway">🇳🇴 노르웨이 기상청<br><span style="font-weight:400;font-size:10px">yr.no</span></div>
+          <div class="compare-col-body">
+            <div class="cmp-temp">${n.temp||'-'}°</div>
+            <div class="cmp-cond">${n.conditionIcon||''} ${n.condition||''}</div>
+            <div class="cmp-stat-row"><span class="cmp-stat-lbl">체감</span><span class="cmp-stat-val">${n.feelsLike||'-'}°</span></div>
+            <div class="cmp-stat-row"><span class="cmp-stat-lbl">습도</span><span class="cmp-stat-val">${n.humidity||'-'}%</span></div>
+            <div class="cmp-stat-row"><span class="cmp-stat-lbl">바람</span><span class="cmp-stat-val">${n.windSpeed||'-'}m/s</span></div>
+            <div class="cmp-stat-row"><span class="cmp-stat-lbl">UV</span><span class="cmp-stat-val">${n.uvIndex||'-'}</span></div>
+            <div style="margin-top:10px;text-align:center;"><span style="font-size:22px;font-weight:800;color:${scoreColor(n.golfScore)}">${n.golfScore||'-'}</span><span style="font-size:10px;color:var(--text-muted);margin-left:3px">라운딩 지수</span></div>
+          </div>
+        </div>
+        <div class="compare-col">
+          <div class="compare-col-hd korea">🇰🇷 국내 기상청<br><span style="font-weight:400;font-size:10px">weather.go.kr</span></div>
+          <div class="compare-col-body">
+            <div class="cmp-temp">${k.temp||'-'}°</div>
+            <div class="cmp-cond">${k.conditionIcon||''} ${k.condition||''}</div>
+            <div class="cmp-stat-row"><span class="cmp-stat-lbl">체감</span><span class="cmp-stat-val">${k.feelsLike||'-'}°</span></div>
+            <div class="cmp-stat-row"><span class="cmp-stat-lbl">습도</span><span class="cmp-stat-val">${k.humidity||'-'}%</span></div>
+            <div class="cmp-stat-row"><span class="cmp-stat-lbl">바람</span><span class="cmp-stat-val">${k.windSpeed||'-'}m/s</span></div>
+            <div class="cmp-stat-row"><span class="cmp-stat-lbl">UV</span><span class="cmp-stat-val">${k.uvIndex||'-'}</span></div>
+            <div style="margin-top:10px;text-align:center;"><span style="font-size:22px;font-weight:800;color:${scoreColor(k.golfScore)}">${k.golfScore||'-'}</span><span style="font-size:10px;color:var(--text-muted);margin-left:3px">라운딩 지수</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:var(--r-sm);padding:10px 12px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">차이 비교</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:rgba(255,255,255,.7);">
+          <span>기온 ${diffBadge(n.temp,k.temp,'°')}</span>
+          <span>습도 ${diffBadge(n.humidity,k.humidity,'%')}</span>
+          <span>바람 ${diffBadge(n.windSpeed,k.windSpeed,'m/s')}</span>
+          <span>라운딩지수 ${diffBadge(n.golfScore,k.golfScore,'점')}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card fade-up">
+      <div class="card-hd"><span class="card-hd-icon">🏌️</span><span class="card-hd-title">오늘 라운딩 종합 조언</span><span style="font-size:10px;color:var(--text-muted);margin-left:auto;">두 기상청 데이터 종합</span></div>
+      <div class="card-body">${combinedAdvice}</div>
+    </div>
+
+    <div class="forecast-compare">
+      <div class="fc-compare-row" style="background:var(--cream);">
+        <div class="fc-day-col" style="font-size:10px;color:var(--text-muted);">날짜</div>
+        <div class="fc-data-col norway-col" style="border-left:1px solid var(--border);"><div class="fc-col-hd" style="color:#003f7f;">🇳🇴 yr.no</div></div>
+        <div class="fc-data-col korea-col" style="border-left:1px solid var(--border);"><div class="fc-col-hd" style="color:#cd2e3a;">🇰🇷 기상청</div></div>
+      </div>
+      ${forecastRows}
+    </div>
+
+    <div class="src-row"><div class="src-dot"></div><span class="src-txt">🇳🇴 yr.no (노르웨이 기상청) vs 🇰🇷 weather.go.kr (국내 기상청)</span></div>`;
+}
+
+
+
+// ── HOLEINONE CALC ────────────────────
+const CS={course:'member',skill:'amateur',venue:'casual'};
+function selOpt(el,g){
+  el.closest('.opts').querySelectorAll('.opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');CS[g]=el.dataset[g];updateCalc();
+}
+function updateCalc(){
+  const age=+document.getElementById('ageSlider').value;
+  const hcp=+document.getElementById('hcpSlider').value;
+  const rnd=+document.getElementById('rndSlider').value;
+  document.getElementById('ageVal').textContent=age+'세';
+  document.getElementById('hcpVal').textContent=hcp;
+  document.getElementById('rndVal').textContent=rnd+'회';
+  let base=1/12500;
+  const hf=hcp<=5?2.5:hcp<=10?1.8:hcp<=18?1.2:hcp<=28?0.8:0.5;
+  const af=age<30?0.9:age<=50?1.1:age<=65?1.0:0.85;
+  const sf={beginner:.4,amateur:1,advanced:2,scratch:4}[CS.skill]||1;
+  const cf={member:1.2,public:1,resort:.9}[CS.course]||1;
+  const prob=base*hf*af*sf*cf;
+  const pct=(prob*100).toFixed(3);
+  const need=Math.round(1/prob);
+  const life=Math.max(1,75-age)*rnd;
+  const exp=(prob*life).toFixed(1);
+  document.getElementById('probNum').textContent=pct;
+  document.getElementById('probBar').style.width=Math.min(100,+pct*30)+'%';
+  document.getElementById('rndNeeded').textContent='약 '+need.toLocaleString()+'회';
+  document.getElementById('lifeVal').textContent='약 '+exp+'회';
+  document.getElementById('probDesc').textContent=need>10000?`${need.toLocaleString()}라운드마다 1번 기회. 꾸준한 연습이 관건!`:need>3000?`약 ${need.toLocaleString()}라운드마다 홀인원 기회가 있어요.`:need>500?`${need.toLocaleString()}라운드마다! 상급자 수준이에요.`:`단 ${need}라운드마다! 프로 수준 🏆`;
+  updateCost();
+}
+function updateCost(){
+  const party=+document.getElementById('partySlider').value;
+  document.getElementById('partyVal').textContent=party+'명';
+  const v=CS.venue||'casual';
+  const meal={casual:80000,fine:150000,party:200000}[v]||80000;
+  const drk={casual:30000,fine:60000,party:100000}[v]||30000;
+  const items=[
+    {n:`식사 (${party+1}명)`,a:(party+1)*meal},
+    {n:`음료·주류 (${party+1}명)`,a:(party+1)*drk},
+    {n:'홀인원 기념 볼 (1타스)',a:80000},
+    {n:'기념 사진·영상',a:50000},
+    {n:'캐디피 추가 팁',a:party*20000},
+  ];
+  const tot=items.reduce((s,i)=>s+i.a,0);
+  document.getElementById('costRows').innerHTML=items.map(i=>`<div class="cost-row"><span class="cost-name">${i.n}</span><span class="cost-amt">₩${i.a.toLocaleString()}</span></div>`).join('');
+  document.getElementById('costTotal').textContent='₩ '+tot.toLocaleString();
+}
+
+// ── SETTINGS ─────────────────────────
+function updateSettingsList(){
+  document.getElementById('settingsList').innerHTML=`
+    <div class="setting-item"><span class="setting-icon">🔑</span><div class="setting-info"><div class="setting-title">Claude API 키</div><div class="setting-desc">홀 공략·날씨 AI</div></div><span class="setting-status ${getC()?'status-ok':'status-no'}">${getC()?'등록됨':'미등록'}</span></div>
+    <div class="setting-item"><span class="setting-icon">🎙</span><div class="setting-info"><div class="setting-title">OpenAI API 키</div><div class="setting-desc">Whisper 음성 인식</div></div><span class="setting-status ${getO()?'status-ok':'status-no'}">${getO()?'등록됨':'미등록'}</span></div>`;
+}
+
+// ── VOICE / WHISPER ───────────────────
+let recorder=null,chunks=[],recOn=false,micTarget='hole';
+function setMicUI(state,tgt){
+  const id=tgt==='weather'?'wMicBtn':'micBtn';
+  const b=document.getElementById(id);
+  if(!b)return;
+  b.classList.remove('rec','proc');
+  if(state==='rec'){b.classList.add('rec');b.textContent='⏹';}
+  else if(state==='proc'){b.classList.add('proc');b.textContent='⏳';}
+  else b.textContent='🎙';
+}
+async function toggleMic(tgt='hole'){
+  micTarget=tgt;
+  if(recOn){recorder?.stop();return;}
+  if(!getO()){togglePanel('oaiPanel');toast('⚠️ OpenAI 키를 먼저 입력해주세요');return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    chunks=[];
+    recorder=new MediaRecorder(stream,{mimeType:'audio/webm'});
+    recorder.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
+    recorder.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      setMicUI('proc',micTarget);toast('🎙 음성 인식 중...',4000);
+      await whisper();
+    };
+    recorder.start();recOn=true;
+    setMicUI('rec',micTarget);toast('🔴 말씀하세요 — 버튼을 다시 눌러 완료',99999);
+  }catch(e){toast('❌ 마이크 권한이 필요해요');console.error(e);}
+}
+async function whisper(){
+  recOn=false;
+  try{
+    const blob=new Blob(chunks,{type:'audio/webm'});
+    const fd=new FormData();
+    fd.append('file',blob,'audio.webm');
+    fd.append('model','whisper-1');
+    fd.append('language','ko');
+    const r=await fetch('https://api.openai.com/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+getO()},body:fd});
+    if(!r.ok)throw new Error('Whisper '+r.status);
+    const d=await r.json();
+    const txt=d.text?.trim();
+    if(!txt){toast('❌ 인식 실패. 다시 시도해주세요.');setMicUI('idle',micTarget);return;}
+    toast('✅ "'+txt+'"');
+    setMicUI('idle',micTarget);
+    if(micTarget==='weather'){document.getElementById('weatherInput').value=txt;setTimeout(doWeather,300);}
+    else{document.getElementById('searchInput').value=txt;setTimeout(doSearch,300);}
+  }catch(e){toast('❌ 음성 오류: '+e.message);setMicUI('idle',micTarget);}
+}
+
+// ── GOLF INFO ────────────────────────
+function setInfo(q){document.getElementById('infoInput').value=q;doGolfInfo();}
+
+async function doGolfInfo(){
+  const name=document.getElementById('infoInput').value.trim();
+  if(!name)return;
+  if(!getC()){togglePanel('keyPanel');toast('⚠️ Claude API 키를 먼저 입력해주세요');return;}
+  document.getElementById('infoEmpty').style.display='none';
+  document.getElementById('infoLoading').classList.add('on');
+  document.getElementById('infoRes').style.display='none';
+  document.getElementById('infoErr').classList.remove('on');
+  ['il1','il2','il3'].forEach((id,i)=>setTimeout(()=>document.getElementById(id).classList.add('on'),i*1200));
+  const btn=document.getElementById('infoBtn');btn.disabled=true;btn.textContent='검색중';
+
+  const sys=`You are a Korean golf course info AI. Search the web for detailed information about the golf course. Output ONLY raw JSON starting with {. No markdown.
+{"courseName":"정식 골프장명","address":"주소","phone":"전화번호","website":"홈페이지","openYear":"개장년월","ownerCompany":"소유/운영회사","membershipType":"회원제 또는 퍼블릭 또는 세미퍼블릭","latitude":"위도(숫자)","longitude":"경도(숫자)","fairwayGrass":"페어웨이 잔디 종류","greenGrass":"그린 잔디 종류","totalHoles":"총 홀수(숫자만)","courses":[{"name":"코스명(예:동코스)","holes":"9","totalYards":"3200y","par":"36","feature":"코스 특징 설명"}],"restaurants":[{"name":"식당명","category":"음식종류(예:한식/중식/일식/양식/카페)","distance":"골프장에서 거리(예:2km)","desc":"간단 설명","address":"주소"},{"name":"식당명2","category":"다른음식종류","distance":"3km","desc":"설명","address":"주소"},{"name":"식당명3","category":"또다른음식종류","distance":"1km","desc":"설명","address":"주소"},{"name":"식당명4","category":"음식종류","distance":"2km","desc":"설명","address":"주소"},{"name":"식당명5","category":"음식종류","distance":"4km","desc":"설명","address":"주소"}],"nearbyCourses":[{"name":"골프장명","distance":"km거리","holes":"홀수","type":"회원제/퍼블릭","feature":"특징"},{"name":"골프장명2","distance":"km","holes":"홀수","type":"퍼블릭","feature":"특징"},{"name":"골프장명3","distance":"km","holes":"홀수","type":"회원제","feature":"특징"}]}
+Search in Korean. restaurants MUST have exactly 5 items with DIVERSE menu categories (no duplicate cuisine types - e.g. don't include 2 Korean BBQ places). nearbyCourses must have at least 3 within 15km. CRITICAL: Output ONLY JSON.`;
+
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getC(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5-20251001',max_tokens:2500,tools:[{type:'web_search_20250305',name:'web_search'}],system:sys,messages:[{role:'user',content:name+' 골프장 정보 알려줘'}]})});
+    if(!r.ok)throw new Error('API '+r.status);
+    const d=await r.json();
+    const txt=d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    let raw=txt.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    const s=raw.indexOf('{'),e=raw.lastIndexOf('}');
+    if(s===-1||e<=s)throw new Error('파싱 실패. 다시 시도해주세요.');
+    const info=JSON.parse(raw.substring(s,e+1));
+    ['il1','il2','il3'].forEach(id=>document.getElementById(id).classList.remove('on'));
+    renderGolfInfo(info);
+  }catch(e){
+    document.getElementById('infoLoading').classList.remove('on');
+    ['il1','il2','il3'].forEach(id=>document.getElementById(id).classList.remove('on'));
+    document.getElementById('infoErrMsg').textContent='오류: '+e.message;
+    document.getElementById('infoErr').classList.add('on');
+  }finally{btn.disabled=false;btn.textContent='검색';}
+}
+
+function renderGolfInfo(d){
+  document.getElementById('infoLoading').classList.remove('on');
+  const res=document.getElementById('infoRes');res.style.display='block';
+
+  // courses HTML
+  const coursesHTML=d.courses?.length?d.courses.map(c=>`
+    <div class="course-item">
+      <div class="course-name">⛳ ${c.name}</div>
+      <div class="course-detail">${c.holes}홀 · ${c.totalYards} · Par ${c.par}<br>${c.feature}</div>
+    </div>`).join(''):'<div style="font-size:13px;color:var(--text-muted)">코스 정보 없음</div>';
+
+  // restaurants HTML
+  const restHTML=d.restaurants?.length?d.restaurants.map((r,i)=>`
+    <div class="rest-item">
+      <div class="rest-num">${i+1}</div>
+      <div class="rest-info">
+        <div class="rest-name">${r.name}</div>
+        <div class="rest-desc">${r.category} · ${r.desc}</div>
+        <div class="rest-dist">📍 ${r.distance}</div>
+      </div>
+    </div>`).join(''):'';
+
+  // nearby courses HTML
+  const nearbyHTML=d.nearbyCourses?.length?d.nearbyCourses.map(c=>`
+    <div class="nearby-item">
+      <div class="nearby-icon">⛳</div>
+      <div class="nearby-info">
+        <div class="nearby-name">${c.name}</div>
+        <div class="nearby-detail">${c.holes}홀 · ${c.type} · ${c.feature}</div>
+      </div>
+      <div class="nearby-dist-badge">${c.distance}</div>
+    </div>`).join(''):'';
+
+  res.innerHTML=`
+    <div class="hole-card fade-up">
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+        <div class="h-badge">🏌️ 골프장 정보</div>
+        <div style="display:inline-block;background:${d.membershipType==='퍼블릭'?'rgba(34,197,94,0.25)':d.membershipType==='세미퍼블릭'?'rgba(251,191,36,0.25)':'rgba(200,168,75,0.25)'};color:${d.membershipType==='퍼블릭'?'#86efac':d.membershipType==='세미퍼블릭'?'#fcd34d':'#fde68a'};font-size:11px;font-weight:700;padding:3px 10px;border-radius:50px;">${d.membershipType||'회원제'}</div>
+      </div>
+      <div class="h-title">${d.courseName||''}</div>
+      <div class="h-sub">${d.address||''}</div>
+      <div class="h-stats">
+        <div><div class="h-stat-lbl">총 홀수</div><div class="h-stat-val">${d.totalHoles||'-'}홀</div></div>
+        <div><div class="h-stat-lbl">개장</div><div class="h-stat-val" style="font-size:12px">${d.openYear||'-'}</div></div>
+        <div><div class="h-stat-lbl">전화</div><div class="h-stat-val" style="font-size:11px">${d.phone||'-'}</div></div>
+      </div>
+    </div>
+
+    <div class="card fade-up">
+      <div class="card-hd"><span class="card-hd-icon">🏢</span><span class="card-hd-title">골프장 개요</span></div>
+      <div class="card-body">
+        <div class="overview-grid">
+          <div class="ov-item"><div class="ov-lbl">운영회사</div><div class="ov-val">${d.ownerCompany||'-'}</div></div>
+          <div class="ov-item"><div class="ov-lbl">개장년월</div><div class="ov-val">${d.openYear||'-'}</div></div>
+          <div class="ov-item"><div class="ov-lbl">회원구분</div><div class="ov-val">${d.membershipType||'-'}</div></div>
+          <div class="ov-item"><div class="ov-lbl">총 홀수</div><div class="ov-val">${d.totalHoles||'-'}홀</div></div>
+          <div class="ov-item"><div class="ov-lbl">페어웨이 잔디</div><div class="ov-val">${d.fairwayGrass||'-'}</div></div>
+          <div class="ov-item"><div class="ov-lbl">그린 잔디</div><div class="ov-val">${d.greenGrass||'-'}</div></div>
+        </div>
+        ${d.website?`<div style="margin-top:10px;font-size:12px;color:var(--text-muted)">🌐 <a href="${d.website}" target="_blank" style="color:var(--green)">${d.website}</a></div>`:''}
+      </div>
+    </div>
+
+    <div id="kakaoMap"></div>
+
+    <div class="card fade-up">
+      <div class="card-hd"><span class="card-hd-icon">📋</span><span class="card-hd-title">코스 구성</span></div>
+      <div class="card-body">${coursesHTML}</div>
+    </div>
+
+    <div class="card fade-up">
+      <div class="card-hd"><span class="card-hd-icon">🍽</span><span class="card-hd-title">인근 맛집</span></div>
+      <div class="card-body">${restHTML}</div>
+    </div>
+
+    <div class="card fade-up">
+      <div class="card-hd"><span class="card-hd-icon">📍</span><span class="card-hd-title">주변 골프장 (15km 이내)</span></div>
+      <div class="card-body">${nearbyHTML}</div>
+    </div>
+
+    <div class="src-row"><div class="src-dot"></div><span class="src-txt">웹 검색 기반 AI 분석 · 실제와 다를 수 있음</span></div>`;
+
+  // Kakao Map
+  setTimeout(()=>{
+    try{
+      const lat=parseFloat(d.latitude)||37.5;
+      const lng=parseFloat(d.longitude)||127.0;
+      const container=document.getElementById('kakaoMap');
+      const map=new kakao.maps.Map(container,{center:new kakao.maps.LatLng(lat,lng),level:4});
+      const marker=new kakao.maps.Marker({map,position:new kakao.maps.LatLng(lat,lng)});
+      const iw=new kakao.maps.InfoWindow({content:`<div style="padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap">${d.courseName}</div>`});
+      iw.open(map,marker);
+    }catch(err){console.log('Map error:',err);}
+  },400);
+}
+
+// ── TTS ──────────────────────────────
+let ttsAudio=null, ttsPlaying=false;
+
+async function speakText(text, btnId){
+  const btn=document.getElementById(btnId);
+  if(!btn)return;
+
+  // Stop if already playing
+  if(ttsPlaying){
+    if(ttsAudio){ttsAudio.pause();ttsAudio=null;}
+    ttsPlaying=false;
+    btn.textContent='🔊';btn.classList.remove('playing','loading');
+    document.getElementById(btnId+'Bar').style.width='0%';
+    return;
+  }
+
+  if(!getO()){toast('⚠️ OpenAI API 키가 필요해요');return;}
+
+  btn.textContent='⏳';btn.classList.add('loading');
+  toast('🔊 음성 생성 중...',3000);
+
+  try{
+    const res=await fetch('https://api.openai.com/v1/audio/speech',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+getO(),'Content-Type':'application/json'},
+      body:JSON.stringify({model:'tts-1',voice:'nova',input:text,speed:1.0})
+    });
+    if(!res.ok)throw new Error('TTS API '+res.status);
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    ttsAudio=new Audio(url);
+    ttsPlaying=true;
+    btn.textContent='⏹';btn.classList.remove('loading');btn.classList.add('playing');
+
+    // Progress animation
+    ttsAudio.addEventListener('timeupdate',()=>{
+      const pct=ttsAudio.duration?(ttsAudio.currentTime/ttsAudio.duration*100):0;
+      const bar=document.getElementById(btnId+'Bar');
+      if(bar)bar.style.width=pct+'%';
+    });
+    ttsAudio.addEventListener('ended',()=>{
+      ttsPlaying=false;ttsAudio=null;
+      btn.textContent='🔊';btn.classList.remove('playing');
+      const bar=document.getElementById(btnId+'Bar');
+      if(bar)bar.style.width='0%';
+    });
+    ttsAudio.play();
+  }catch(e){
+    btn.textContent='🔊';btn.classList.remove('loading','playing');
+    toast('❌ 음성 오류: '+e.message);
+    ttsPlaying=false;
+  }
+}
+
+const ttsTexts={};
+
+function speakById(id){
+  const text=ttsTexts[id]||'';
+  if(text) speakText(text, id);
+}
+
+function makeTTSBar(id, text){
+  ttsTexts[id]=text;
+  return `<div class="tts-bar">
+    <button class="tts-btn" id="${id}" onclick="speakById('${id}')">🔊</button>
+    <div class="tts-info">
+      <div class="tts-title">음성으로 듣기</div>
+      <div class="tts-desc">탭하면 AI가 주요 내용을 읽어드려요</div>
+      <div class="tts-progress"><div class="tts-progress-bar" id="${id}Bar"></div></div>
+    </div>
+  </div>`;
+}
+
+// ── LESSON ───────────────────────────
+let currentClub = '드라이버';
+
+// ── 임진한 프로 레슨 영상 데이터베이스 ──
+// 출처: 임진한클라스 유튜브 채널 + SBS Golf
+// 마지막 업데이트: 2026.05
+const LESSON_DB = {
+  '드라이버': [
+    {title:"[임진한 레슨] 드라이버 비거리는 연습 스윙처럼 쉽게 휘두르면 됩니다", desc:"비거리를 늘리는 핵심은 연습 스윙의 편안함을 실제 샷에 그대로 적용하는 것입니다. 긴장을 풀고 자연스럽게 휘두르는 방법을 설명합니다.", keyPoints:["연습 스윙과 실전 스윙 동일하게","힘 빼고 편안하게 휘두르기","팔로우스루 완성으로 비거리 극대화"], duration:"11:22", url:"https://www.youtube.com/watch?v=gVLTOGlmAR8",thumb:"https://img.youtube.com/vi/gVLTOGlmAR8/mqdefault.jpg"},
+    {title:"[임진한 레슨] 급한 스윙, 뒤땅 나는 드라이버샷 교정", desc:"드라이버와 우드에서 급한 스윙과 뒤땅이 나는 원인을 분석하고 교정법을 알려줍니다. 스윙 궤도 점검이 핵심입니다.", keyPoints:["백스윙 탑에서 그립 위치","바깥에서 안으로 스윙 궤도","우드 백스윙 가파르게"], duration:"9:24", url:"https://www.youtube.com/watch?v=n2BKh9adb1o",thumb:"https://img.youtube.com/vi/n2BKh9adb1o/mqdefault.jpg"},
+    {title:"[임진한 레슨] 드라이버 & 아이언 훅 구질 교정하기", desc:"그립부터 스윙까지 훅 구질의 원인을 단계적으로 분석하고 교정합니다.", keyPoints:["그립 교정이 먼저","어드레스 스탠스 확인","임팩트 페이스 각도"], url:"https://www.youtube.com/watch?v=22000525441"},
+    {title:"[임진한 레슨] 드라이버 회전 — 옆으로 밀지 않고 회전하기", desc:"많은 아마추어가 하는 슬라이드 동작을 교정하여 올바른 회전 스윙을 만드는 방법입니다.", keyPoints:["힙 슬라이드 방지","축 고정 회전","체중 이동 타이밍"], url:"https://www.youtube.com/watch?v=22000486213"},
+    {title:"[임진한 레슨] 드라이버샷 트라우마 교정하기", desc:"드라이버 공포증을 극복하고 자신감 있는 티샷을 만드는 방법을 다룹니다.", keyPoints:["루틴으로 긴장 해소","짧은 백스윙부터 시작","성공 경험 쌓기"], url:"https://www.youtube.com/watch?v=22000529966"},
+  ],
+  '아이언': [
+    {title:"[임진한 골프레슨] 아이언, 클럽에 따라 거리를 만드는 임팩트", desc:"각 아이언 클럽별로 거리를 만드는 임팩트의 핵심 원리를 설명합니다.", keyPoints:["클럽별 로프트 활용","다운블로우 임팩트","디봇 방향 확인"], url:"https://www.youtube.com/watch?v=LX5FCO5DXZc",thumb:"https://img.youtube.com/vi/LX5FCO5DXZc/mqdefault.jpg"},
+    {title:"[임진한 레슨] 아이언 섕크 교정하기", desc:"아마추어 골퍼의 최대 난적인 섕크의 원인과 즉각적인 교정법을 설명합니다.", keyPoints:["클럽 페이스 방향 점검","어드레스 볼 위치","임팩트 존 압박"], url:"https://golf.sbs.co.kr/clip/22000522791"},
+    {title:"[임진한 레슨] 56도 웨지로 띄우는 어프로치 & 9번 아이언 굴리는 어프로치", desc:"쇼트 아이언을 활용한 러닝 어프로치와 웨지 피치샷을 완성하는 방법입니다.", keyPoints:["9번 아이언 러닝 어프로치","56도 웨지 피치샷","상황별 클럽 선택"], url:"https://www.youtube.com/watch?v=jZzXtKdsh6M",thumb:"https://img.youtube.com/vi/jZzXtKdsh6M/mqdefault.jpg"},
+    {title:"[임진한 레슨] 드라이버 잘 휘두르기 위한 꿀팁", desc:"드라이버와 아이언 모두에 적용되는 스윙의 핵심 원리를 설명합니다.", keyPoints:["그립 끝 당기기","왼 어깨 턱 밑으로","전체 스윙 리듬"], url:"https://www.youtube.com/watch?v=22000522365"},
+    {title:"[임진한 레슨] 라이브 드라이버+우드+유틸리티 끝장레슨", desc:"드라이버부터 유틸리티까지 롱게임 전반을 다루는 라이브 레슨입니다.", keyPoints:["우드 스윙 스위퍼","유틸리티 볼 위치","상황별 클럽 활용"], duration:"60분+", url:"https://www.youtube.com/watch?v=gdzEShm6q0Q",thumb:"https://img.youtube.com/vi/gdzEShm6q0Q/mqdefault.jpg"},
+  ],
+  '웨지': [
+    {title:"[임진한 레슨] 56도 웨지 완전정복 — 띄우는 어프로치샷", desc:"56도 웨지로 높이 띄우는 어프로치샷의 모든 기술을 설명합니다. 페이스 오픈과 스윙 경로가 핵심입니다.", keyPoints:["페이스 오픈 설정","스탠스 오픈법","부드러운 팔로우스루"], url:"https://www.youtube.com/watch?v=jZzXtKdsh6M"},
+    {title:"[임진한 레슨] 웨지 거리 컨트롤 — 50m 70m 정확하게", desc:"웨지로 정확한 거리를 내는 스윙 크기 조절법을 다룹니다.", keyPoints:["시계 방향 스윙 크기","스핀량 조절 기술","핀 공략 각도"], url:"https://www.youtube.com/results?search_query=임진한+웨지+거리컨트롤"},
+    {title:"[임진한 레슨] 러닝 어프로치 완성", desc:"낮고 굴리는 러닝 어프로치로 스코어를 줄이는 방법입니다.", keyPoints:["퍼팅 스트로크 응용","착지 지점 선정","경사면 계산법"], url:"https://www.youtube.com/results?search_query=임진한+러닝어프로치"},
+    {title:"[임진한 레슨] 플롭샷 기술 완전 정복", desc:"장애물을 넘기는 극단적인 로브샷 기술입니다.", keyPoints:["클럽 페이스 맥스 오픈","느린 스윙 속도","팔로우스루 완성"], url:"https://www.youtube.com/results?search_query=임진한+플롭샷"},
+    {title:"[임진한 레슨] 웨지 스핀 만들기", desc:"백스핀을 만들어 핀 가까이 붙이는 고급 기술입니다.", keyPoints:["그루브 활용법","임팩트 존 압박","클린 컨택"], url:"https://www.youtube.com/results?search_query=임진한+웨지+스핀"},
+  ],
+  '퍼터': [
+    {title:"[임진한 레슨] 퍼트 거리감 — 공 말고 홀을 바라봐야", desc:"퍼팅 거리감을 높이는 시선 처리법을 설명합니다. 홀을 바라보며 퍼팅하는 혁신적인 방법입니다.", keyPoints:["홀 바라보며 퍼팅","거리감 향상 훈련","리듬감 만들기"], url:"https://www.youtube.com/watch?v=QA1kHW0ScA8",thumb:"https://img.youtube.com/vi/QA1kHW0ScA8/mqdefault.jpg"},
+    {title:"[임진한의 베스트 레슨] 퍼팅의 기본", desc:"퍼팅의 기본기를 완성하는 방법입니다. 그립부터 스트로크까지 체계적으로 설명합니다.", keyPoints:["퍼터 그립 방법","진자 운동 만들기","헤드 가속 유지"], url:"https://www.youtube.com/watch?v=7Beio4BzJ2Q",thumb:"https://img.youtube.com/vi/7Beio4BzJ2Q/mqdefault.jpg"},
+    {title:"[임진한 레슨] 퍼팅 라인 읽는 법", desc:"그린의 경사와 빠르기를 정확하게 읽는 방법을 다룹니다.", keyPoints:["그린 경사 읽는 방향","발바닥으로 경사 느끼기","그레인(결) 파악법"], url:"https://www.youtube.com/results?search_query=임진한+퍼팅+라인읽기"},
+    {title:"[임진한 레슨] 쇼트 퍼팅 확실하게 넣기", desc:"1~2m 쇼트 퍼팅을 확실하게 성공시키는 방법입니다.", keyPoints:["홀 중앙 겨냥","눈 위치 확인","긴장 없애는 루틴"], url:"https://www.youtube.com/results?search_query=임진한+쇼트퍼팅"},
+    {title:"[임진한 레슨] 오르막 내리막 퍼팅 거리 조절", desc:"경사가 있는 퍼팅의 거리 조절 방법을 설명합니다.", keyPoints:["오르막 세게 치기","내리막 부드럽게","브레이크 계산법"], url:"https://www.youtube.com/results?search_query=임진한+경사퍼팅"},
+  ],
+  '어프로치': [
+    {title:"[임진한 레슨] 56도 웨지 띄우는 어프로치 & 9번 아이언 굴리는 어프로치", desc:"상황에 따라 띄우는 어프로치와 굴리는 어프로치를 구분해서 사용하는 방법을 설명합니다.", keyPoints:["상황별 클럽 선택","착지 후 런 계산","핀 공략 전략"], url:"https://www.youtube.com/watch?v=jZzXtKdsh6M"},
+    {title:"[임진한 레슨] 칩샷 완전정복", desc:"낮고 굴리는 칩샷의 기본기를 완성합니다.", keyPoints:["좁은 스탠스 설정","핸드퍼스트 어드레스","팔 주도 스윙"], url:"https://www.youtube.com/results?search_query=임진한+칩샷"},
+    {title:"[임진한 레슨] 그린 주변 어프로치 기본기", desc:"그린 주변 30m 이내 어프로치의 기본기를 다집니다.", keyPoints:["클럽별 탄도 차이","착지 지점 선정","런 거리 계산"], url:"https://www.youtube.com/results?search_query=임진한+그린주변+어프로치"},
+    {title:"[임진한 레슨] 러프에서 어프로치 탈출", desc:"러프와 두꺼운 잔디에서의 어프로치 탈출 기술입니다.", keyPoints:["클럽 선택 변경","강한 임팩트 유지","폴로우스루 짧게"], url:"https://www.youtube.com/results?search_query=임진한+러프+어프로치"},
+    {title:"[임진한 레슨] 내리막 어프로치 교정", desc:"내리막 경사에서의 어프로치 어려움을 극복하는 방법입니다.", keyPoints:["경사면 따라 스윙","볼 위치 조정","클럽 선택 변경"], url:"https://www.youtube.com/results?search_query=임진한+내리막+어프로치"},
+  ],
+  '벙커샷': [
+    {title:"[임진한 레슨] 그린사이드 벙커 확실한 탈출법", desc:"그린 주변 벙커에서 확실하게 탈출하는 기본 기술입니다. 페이스 오픈과 모래 치기가 핵심입니다.", keyPoints:["페이스 오픈 설정","모래 치기 원리","팔로우스루 완성"], url:"https://www.youtube.com/results?search_query=임진한+벙커샷+탈출"},
+    {title:"[임진한 레슨] 페어웨이 벙커 탈출", desc:"페어웨이 벙커에서 안전하고 멀리 보내는 방법을 다룹니다.", keyPoints:["클린 컨택 만들기","발 파묻기로 안정","탈출 방향 선택"], url:"https://www.youtube.com/results?search_query=임진한+페어웨이벙커"},
+    {title:"[임진한 레슨] 벙커 거리 컨트롤", desc:"벙커에서 핀 가까이 붙이는 거리 조절 기술입니다.", keyPoints:["모래 두께 조절","스윙 스피드 변화","착지 지점 설정"], url:"https://www.youtube.com/results?search_query=임진한+벙커+거리컨트롤"},
+    {title:"[임진한 레슨] 단단한 모래 벙커샷", desc:"젖거나 단단한 모래에서의 벙커샷 적응 기술입니다.", keyPoints:["페이스 조금 닫기","날카로운 임팩트","미끄럼 방지 스탠스"], url:"https://www.youtube.com/results?search_query=임진한+단단한모래+벙커"},
+    {title:"[임진한 레슨] 벙커 두려움 극복하기", desc:"벙커에 대한 두려움을 없애는 멘탈 트레이닝과 연습법입니다.", keyPoints:["루틴 만들기","연습 스윙 활용","자신감 유지법"], url:"https://www.youtube.com/results?search_query=임진한+벙커+멘탈"},
+  ],
+  '스윙기초': [
+    {title:"[임진한 레슨] 라이브 드라이버+우드+유틸리티 끝장레슨", desc:"스윙 기초부터 롱게임 전반을 다루는 종합 레슨입니다.", keyPoints:["스윙의 기본 원리","클럽별 스윙 차이","리듬과 템포"], duration:"60분+", url:"https://www.youtube.com/watch?v=gdzEShm6q0Q",thumb:"https://img.youtube.com/vi/gdzEShm6q0Q/mqdefault.jpg"},
+    {title:"[임진한 레슨] 올바른 그립 잡는 법", desc:"오버래핑, 인터로킹, 베이스볼 그립의 차이와 자신에게 맞는 그립을 선택하는 방법입니다.", keyPoints:["그립 종류별 특징","그립 압력 조절","손목 각도 유지"], url:"https://www.youtube.com/results?search_query=임진한+그립+잡는법"},
+    {title:"[임진한 레슨] 체중 이동 마스터", desc:"파워 있는 스윙을 만드는 체중 이동의 핵심 원리를 설명합니다.", keyPoints:["백스윙 체중 이동","다운스윙 왼발 이동","임팩트 왼발 지지"], url:"https://www.youtube.com/results?search_query=임진한+체중이동"},
+    {title:"[임진한 레슨] 하체 리드 스윙", desc:"파워풀한 스윙을 만드는 하체 주도 스윙의 비밀을 공개합니다.", keyPoints:["힙 회전 타이밍","무릎 굽힘 유지","발바닥 압력 전달"], url:"https://www.youtube.com/results?search_query=임진한+하체리드+스윙"},
+    {title:"[임진한 레슨] 임팩트 존 완성법", desc:"모든 샷의 결과를 결정짓는 임팩트 순간의 올바른 자세를 설명합니다.", keyPoints:["핸드퍼스트 임팩트","클럽 페이스 스퀘어","몸통 회전 동기화"], url:"https://www.youtube.com/results?search_query=임진한+임팩트존"},
+  ],
+};
+
+function selectClub(el){
+  document.querySelectorAll('.lf-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  currentClub = el.dataset.club;
+  renderLessonsFromDB(currentClub);
+}
+
+async function loadLessons(club){
+  // 새로고침: AI로 최신 영상 수집
+  if(!getC()){toast('⚠️ Claude API 키가 필요해요');return;}
+  document.getElementById('lessonLoading').classList.add('on');
+  document.getElementById('lessonLoadingTxt').textContent = `임진한 프로 ${club} 최신 영상 업데이트 중...`;
+  document.getElementById('lessonGrid').innerHTML='';
+  document.getElementById('lessonErr').classList.remove('on');
+
+  const sys = `You are a Korean golf lesson curator. Search YouTube for lesson videos by Korean golf pro 임진한 (Lim Jin-han). Find REAL videos about the club/topic requested. Output ONLY raw JSON. No markdown. Start with {.
+{"club":"클럽명","lessons":[{"title":"영상제목","desc":"내용요약","keyPoints":["포인트1","포인트2","포인트3"],"duration":"길이","url":"https://www.youtube.com/results?search_query=임진한+클럽+레슨"}]}
+Find 5 videos. CRITICAL: Output ONLY JSON starting with {`;
+
+  try{
+    const r = await fetch(API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':getC(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-5-20251001',
+        max_tokens:1500,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system: sys,
+        messages:[{role:'user',content:`임진한 프로 ${club} 레슨 유튜브 영상`}]
+      })
+    });
+    if(!r.ok) throw new Error('API '+r.status);
+    const d = await r.json();
+    const txt = d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    let raw = txt.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    const s=raw.indexOf('{'), e=raw.lastIndexOf('}');
+    if(s===-1||e<=s) throw new Error('파싱 실패');
+    const data = JSON.parse(raw.substring(s,e+1));
+    if(data.lessons?.length){
+      LESSON_DB[club] = data.lessons;
+      toast('✅ 최신 영상으로 업데이트됐어요!');
+    }
+    renderLessonsFromDB(club);
+  }catch(e){
+    document.getElementById('lessonLoading').classList.remove('on');
+    toast('업데이트 실패 — 저장된 영상을 표시합니다');
+    renderLessonsFromDB(club);
+  }
+}
+
+function getYTThumb(url, thumb){
+  if(thumb) return thumb;
+  const m = url.match(/[?&]v=([^&]+)/);
+  if(m) return `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg`;
+  return null;
+}
+
+function renderLessonsFromDB(club){
+  document.getElementById('lessonLoading').classList.remove('on');
+  const lessons = LESSON_DB[club] || [];
+  const grid = document.getElementById('lessonGrid');
+  if(!lessons.length){
+    grid.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">영상 정보가 없습니다.</div>';
+    return;
+  }
+  grid.innerHTML = lessons.map((v,i)=>{
+    const thumb = getYTThumb(v.url, v.thumb);
+    return `
+    <a class="lesson-card" href="${v.url}" target="_blank" rel="noopener">
+      <div class="lesson-thumb">
+        ${thumb
+          ? `<img src="${thumb}" alt="${v.title}"
+              style="width:100%;height:100%;object-fit:cover;border-radius:0"
+              onerror="this.style.display='none';this.parentElement.querySelector('.thumb-bg').style.display='flex'">`
+          : ''}
+        <div class="thumb-bg" style="position:absolute;inset:0;background:linear-gradient(135deg,#1c3a2a 0%,#2d5c3e 100%);display:${thumb?'none':'flex'};flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+          <div style="font-size:36px;">🏌️</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);font-weight:600;text-align:center;padding:0 12px;line-height:1.4;">${v.title.slice(0,28)}...</div>
+        </div>
+        <div class="lesson-play-overlay">
+          <div class="lesson-play-btn">▶</div>
+        </div>
+        ${v.duration?`<div class="lesson-duration">${v.duration}</div>`:''}
+      </div>
+      <div class="lesson-info">
+        <div class="lesson-club-tag">🏌️ 임진한 프로 · ${club}</div>
+        <div class="lesson-title">${v.title}</div>
+        <div class="lesson-desc">${v.desc||''}</div>
+        <div class="lesson-meta">📺 YouTube · 탭해서 보기</div>
+        ${v.keyPoints?.length?`
+        <div class="lesson-point-list">
+          ${v.keyPoints.map(p=>`<div class="lesson-point">${p}</div>`).join('')}
+        </div>`:''}
+      </div>
+    </a>`;
+  }).join('');
+}
+
+// ── INIT ─────────────────────────────// ── INIT ─────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  if(getC()){document.getElementById('btnClaude').textContent='🔑 Claude ✓';document.getElementById('btnClaude').classList.add('ok');document.getElementById('claudeKey').value=getC();}
+  if(getO()){document.getElementById('btnOAI').textContent='🎙 Voice ✓';document.getElementById('btnOAI').classList.add('ok');document.getElementById('oaiKey').value=getO();}
+  document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+  document.getElementById('infoInput').addEventListener('keydown',e=>{if(e.key==='Enter')doGolfInfo();});
+  document.getElementById('weatherInput').addEventListener('keydown',e=>{if(e.key==='Enter')doWeather();});
+  updateCalc();updateSettingsList();
+});
+</script>
+</body>
+</html>
