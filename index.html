@@ -1068,6 +1068,42 @@ function loadKakaoMaps(){
   return window.kakaoMapsReady;
 }
 
+function renderKakaoRestaurants(places=[]){
+  const box=document.getElementById('restaurantList');
+  if(!box)return;
+  if(!places.length){
+    box.innerHTML='<div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Kakao 장소검색에서 주변 음식점을 찾지 못했습니다.</div>';
+    return;
+  }
+  box.innerHTML=places.slice(0,5).map((p,i)=>`
+    <a class="rest-item" href="${p.place_url||'#'}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">
+      <div class="rest-num">${i+1}</div>
+      <div class="rest-info">
+        <div class="rest-name">${p.place_name}</div>
+        <div class="rest-desc">${p.category_name||'음식점'}${p.road_address_name||p.address_name?` · ${p.road_address_name||p.address_name}`:''}</div>
+        <div class="rest-dist">📍 ${p.distance?Number(p.distance).toLocaleString()+'m':'거리 정보 없음'} · Kakao 장소검색</div>
+      </div>
+    </a>`).join('');
+}
+
+function searchKakaoRestaurants(lat,lng){
+  return new Promise((resolve,reject)=>{
+    if(!window.kakao?.maps?.services)return reject(new Error('KAKAO_SERVICES_NOT_READY'));
+    const ps=new kakao.maps.services.Places();
+    ps.categorySearch('FD6',(data,status)=>{
+      if(status===kakao.maps.services.Status.OK){
+        renderKakaoRestaurants(data);
+        resolve(data);
+      }else if(status===kakao.maps.services.Status.ZERO_RESULT){
+        renderKakaoRestaurants([]);
+        resolve([]);
+      }else{
+        reject(new Error('KAKAO_PLACES_FAILED'));
+      }
+    },{location:new kakao.maps.LatLng(lat,lng),radius:10000,sort:kakao.maps.services.SortBy.DISTANCE});
+  });
+}
+
 function explainApiError(status, message=''){
   if(status===429)return 'Claude API 사용량 제한 또는 크레딧 한도에 걸렸습니다. 잠시 후 다시 시도하거나 Anthropic 콘솔의 결제/사용량 한도를 확인해주세요.';
   if(status===401)return 'Claude API 키가 올바르지 않거나 만료되었습니다. 상단 Claude 버튼에서 키를 다시 저장해주세요.';
@@ -1305,7 +1341,7 @@ async function doGolfInfo(){
 
   const sys=`You are a Korean golf course info AI. Search the web for detailed information about the golf course. Output ONLY raw JSON starting with {. No markdown.
 {"courseName":"정식 골프장명","address":"주소","phone":"전화번호","website":"홈페이지","openYear":"개장년월","ownerCompany":"소유/운영회사","membershipType":"회원제 또는 퍼블릭 또는 세미퍼블릭","latitude":"위도(숫자)","longitude":"경도(숫자)","fairwayGrass":"페어웨이 잔디 종류","greenGrass":"그린 잔디 종류","totalHoles":"총 홀수(숫자만)","courses":[{"name":"코스명(예:동코스)","holes":"9","totalYards":"3200y","par":"36","feature":"코스 특징 설명"}],"restaurants":[{"name":"식당명","category":"음식종류(예:한식/중식/일식/양식/카페)","distance":"골프장에서 거리(예:2km)","desc":"간단 설명","address":"주소"},{"name":"식당명2","category":"다른음식종류","distance":"3km","desc":"설명","address":"주소"},{"name":"식당명3","category":"또다른음식종류","distance":"1km","desc":"설명","address":"주소"},{"name":"식당명4","category":"음식종류","distance":"2km","desc":"설명","address":"주소"},{"name":"식당명5","category":"음식종류","distance":"4km","desc":"설명","address":"주소"}],"nearbyCourses":[{"name":"골프장명","distance":"km거리","holes":"홀수","type":"회원제/퍼블릭","feature":"특징"},{"name":"골프장명2","distance":"km","holes":"홀수","type":"퍼블릭","feature":"특징"},{"name":"골프장명3","distance":"km","holes":"홀수","type":"회원제","feature":"특징"}]}
-Search in Korean. restaurants MUST have exactly 5 items with DIVERSE menu categories (no duplicate cuisine types - e.g. don't include 2 Korean BBQ places). nearbyCourses must have at least 3 within 15km. CRITICAL: Output ONLY JSON.`;
+Search in Korean. Set restaurants to an empty array because real restaurants are loaded from Kakao Places after the course location is known. nearbyCourses must have at least 3 within 15km. CRITICAL: Output ONLY JSON.`;
 
   try{
     const info=await askGolfJSON(sys,name+' 골프장 정보 알려줘',2000);
@@ -1330,16 +1366,8 @@ function renderGolfInfo(d){
       <div class="course-detail">${c.holes}홀 · ${c.totalYards} · Par ${c.par}<br>${c.feature}</div>
     </div>`).join(''):'<div style="font-size:13px;color:var(--text-muted)">코스 정보 없음</div>';
 
-  // restaurants HTML
-  const restHTML=d.restaurants?.length?d.restaurants.map((r,i)=>`
-    <div class="rest-item">
-      <div class="rest-num">${i+1}</div>
-      <div class="rest-info">
-        <div class="rest-name">${r.name}</div>
-        <div class="rest-desc">${r.category} · ${r.desc}</div>
-        <div class="rest-dist">📍 ${r.distance}</div>
-      </div>
-    </div>`).join(''):'';
+  // restaurants are loaded from Kakao Places, not from AI text.
+  const restHTML='<div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Kakao 장소검색으로 실제 주변 음식점을 불러오는 중입니다.</div>';
 
   // nearby courses HTML
   const nearbyHTML=d.nearbyCourses?.length?d.nearbyCourses.map(c=>`
@@ -1391,7 +1419,7 @@ function renderGolfInfo(d){
 
     <div class="card fade-up">
       <div class="card-hd"><span class="card-hd-icon">🍽</span><span class="card-hd-title">인근 맛집</span></div>
-      <div class="card-body">${restHTML}</div>
+      <div class="card-body" id="restaurantList">${restHTML}</div>
     </div>
 
     <div class="card fade-up">
@@ -1412,6 +1440,7 @@ function renderGolfInfo(d){
       const marker=new kakao.maps.Marker({map,position:new kakao.maps.LatLng(lat,lng)});
       const iw=new kakao.maps.InfoWindow({content:`<div style="padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap">${d.courseName}</div>`});
       iw.open(map,marker);
+      searchKakaoRestaurants(lat,lng).catch(err=>console.log('Restaurant search error:',err));
     }catch(err){
       const container=document.getElementById('kakaoMap');
       if(container){
@@ -1422,10 +1451,13 @@ function renderGolfInfo(d){
         container.style.textAlign='center';
         container.style.color='var(--text-muted)';
         container.style.fontSize='12px';
-        container.textContent=err.message==='NO_KAKAO_KEY'
-          ? '설정에서 Kakao JavaScript 키를 저장하면 지도가 표시됩니다.'
-          : 'Kakao 지도를 불러오지 못했습니다. 키와 허용 도메인을 확인해주세요.';
+        container.textContent=location.protocol==='file:'
+          ? 'file://로 열면 Kakao 지도가 차단될 수 있습니다. GitHub Pages 주소 또는 http://127.0.0.1 주소를 Kakao 허용 도메인에 등록해 사용해주세요.'
+          : err.message==='NO_KAKAO_KEY'
+            ? '설정에서 Kakao JavaScript 키를 저장하면 지도가 표시됩니다.'
+            : 'Kakao 지도를 불러오지 못했습니다. 키와 허용 도메인을 확인해주세요.';
       }
+      renderKakaoRestaurants([]);
       console.log('Map error:',err);
     }
   },400);
