@@ -8,8 +8,7 @@
 <meta name="theme-color" content="#1c3a2a">
 <title>전상헌의 Golf Caddy</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<!-- 카카오맵: 아래 YOUR_KAKAO_KEY를 실제 키로 교체하세요 -->
-<script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_KEY&libraries=services"></script>
+<!-- Kakao Maps SDK is loaded after the user saves a JavaScript key. -->
 <style>
 :root{
   --green:#1c3a2a;--green-mid:#2d5c3e;--green-light:#3d7a52;
@@ -377,6 +376,7 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--cream)
       <span class="logo-text">전상헌의 Golf Caddy</span>
       <button class="hdr-btn" id="btnClaude" onclick="togglePanel('keyPanel')">🔑 Claude</button>
       <button class="hdr-btn" id="btnOAI" onclick="togglePanel('oaiPanel')">🎙 Voice</button>
+      <button class="hdr-btn" id="btnKakao" onclick="togglePanel('kakaoPanel')">🗺 Kakao</button>
     </div>
     <div class="key-panel" id="keyPanel">
       <div class="key-lbl">Anthropic API Key</div>
@@ -393,6 +393,14 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--cream)
         <button class="key-save" onclick="saveOAIKey()">저장</button>
       </div>
       <div class="key-note" id="oaiStatus">기존 OpenAI 키 그대로 사용 가능합니다.</div>
+    </div>
+    <div class="key-panel" id="kakaoPanel">
+      <div class="key-lbl">Kakao JavaScript Key</div>
+      <div class="key-row">
+        <input class="key-input" id="kakaoKey" type="password" placeholder="Kakao JavaScript 키">
+        <button class="key-save" onclick="saveKakaoKey()">저장</button>
+      </div>
+      <div class="key-note" id="kakaoStatus">골프장 정보 화면의 지도 표시에 사용됩니다.</div>
     </div>
   </div>
 
@@ -623,7 +631,7 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--cream)
         </div>
         <div style="margin-top:20px;padding:16px;background:var(--white);border-radius:var(--r);border:1px solid var(--border);">
           <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">API 키 재입력</div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;">상단 🔑 Claude / 🎙 Voice 버튼을 눌러 키를 입력하세요.</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;">상단 🔑 Claude / 🎙 Voice / 🗺 Kakao 버튼을 눌러 키를 입력하세요.</div>
           <button onclick="clearKeys()" style="background:#fce8e8;border:none;border-radius:var(--r-sm);padding:10px 16px;font-size:13px;font-weight:600;color:#8b2020;cursor:pointer;font-family:inherit;width:100%;">🗑 저장된 키 모두 삭제</button>
         </div>
         <div style="margin-top:16px;text-align:center;font-size:11px;color:var(--text-muted);line-height:1.7;">
@@ -667,10 +675,12 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--cream)
 
 <script>
 const API='https://api.anthropic.com/v1/messages';
+const KAKAO_JS_KEY='0b9f756eb8c3d6a0e82ecf59adc3545b';
 
 // ── KEYS ─────────────────────────────
 const getC=()=>localStorage.getItem('gc_claude')||'';
 const getO=()=>localStorage.getItem('gc_oai')||'';
+const getK=()=>KAKAO_JS_KEY||localStorage.getItem('gc_kakao')||'';
 
 function saveClaudeKey(){
   const v=document.getElementById('claudeKey').value.trim();
@@ -694,9 +704,21 @@ function saveOAIKey(){
   setTimeout(()=>closeAllPanels(),900);
   updateSettingsList();
 }
+function saveKakaoKey(){
+  const v=document.getElementById('kakaoKey').value.trim();
+  if(!v)return;
+  localStorage.setItem('gc_kakao',v);
+  document.getElementById('kakaoStatus').textContent='✅ 저장완료!';
+  document.getElementById('kakaoStatus').style.color='#6ee7b7';
+  document.getElementById('btnKakao').textContent='🗺 Kakao ✓';
+  document.getElementById('btnKakao').classList.add('ok');
+  window.kakaoMapsReady=null;
+  setTimeout(()=>closeAllPanels(),900);
+  updateSettingsList();
+}
 function clearKeys(){
   if(!confirm('저장된 API 키를 모두 삭제할까요?'))return;
-  localStorage.removeItem('gc_claude');localStorage.removeItem('gc_oai');
+  localStorage.removeItem('gc_claude');localStorage.removeItem('gc_oai');localStorage.removeItem('gc_kakao');
   location.reload();
 }
 function togglePanel(id){
@@ -1051,7 +1073,26 @@ function updateCost(){
 function updateSettingsList(){
   document.getElementById('settingsList').innerHTML=`
     <div class="setting-item"><span class="setting-icon">🔑</span><div class="setting-info"><div class="setting-title">Claude API 키</div><div class="setting-desc">홀 공략·날씨 AI</div></div><span class="setting-status ${getC()?'status-ok':'status-no'}">${getC()?'등록됨':'미등록'}</span></div>
-    <div class="setting-item"><span class="setting-icon">🎙</span><div class="setting-info"><div class="setting-title">OpenAI API 키</div><div class="setting-desc">Whisper 음성 인식</div></div><span class="setting-status ${getO()?'status-ok':'status-no'}">${getO()?'등록됨':'미등록'}</span></div>`;
+    <div class="setting-item"><span class="setting-icon">🎙</span><div class="setting-info"><div class="setting-title">OpenAI API 키</div><div class="setting-desc">Whisper 음성 인식</div></div><span class="setting-status ${getO()?'status-ok':'status-no'}">${getO()?'등록됨':'미등록'}</span></div>
+    <div class="setting-item"><span class="setting-icon">🗺</span><div class="setting-info"><div class="setting-title">Kakao JavaScript 키</div><div class="setting-desc">골프장 지도 표시</div></div><span class="setting-status ${getK()?'status-ok':'status-no'}">${getK()?'등록됨':'미등록'}</span></div>`;
+}
+
+function loadKakaoMaps(){
+  if(window.kakao?.maps)return Promise.resolve(window.kakao);
+  const key=getK();
+  if(!key)return Promise.reject(new Error('NO_KAKAO_KEY'));
+  if(window.kakaoMapsReady)return window.kakaoMapsReady;
+  window.kakaoMapsReady=new Promise((resolve,reject)=>{
+    const prev=document.getElementById('kakaoSdk');
+    if(prev)prev.remove();
+    const s=document.createElement('script');
+    s.id='kakaoSdk';
+    s.src=`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&libraries=services&autoload=false`;
+    s.onload=()=>kakao.maps.load(()=>resolve(kakao));
+    s.onerror=()=>reject(new Error('KAKAO_LOAD_FAILED'));
+    document.head.appendChild(s);
+  });
+  return window.kakaoMapsReady;
 }
 
 // ── VOICE / WHISPER ───────────────────
@@ -1311,8 +1352,9 @@ function renderGolfInfo(d){
     <div class="src-row"><div class="src-dot"></div><span class="src-txt">웹 검색 기반 AI 분석 · 실제와 다를 수 있음</span></div>`;
 
   // Kakao Map
-  setTimeout(()=>{
+  setTimeout(async ()=>{
     try{
+      await loadKakaoMaps();
       const lat=parseFloat(d.latitude)||37.5;
       const lng=parseFloat(d.longitude)||127.0;
       const container=document.getElementById('kakaoMap');
@@ -1320,7 +1362,22 @@ function renderGolfInfo(d){
       const marker=new kakao.maps.Marker({map,position:new kakao.maps.LatLng(lat,lng)});
       const iw=new kakao.maps.InfoWindow({content:`<div style="padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap">${d.courseName}</div>`});
       iw.open(map,marker);
-    }catch(err){console.log('Map error:',err);}
+    }catch(err){
+      const container=document.getElementById('kakaoMap');
+      if(container){
+        container.style.display='flex';
+        container.style.alignItems='center';
+        container.style.justifyContent='center';
+        container.style.padding='16px';
+        container.style.textAlign='center';
+        container.style.color='var(--text-muted)';
+        container.style.fontSize='12px';
+        container.textContent=err.message==='NO_KAKAO_KEY'
+          ? '설정에서 Kakao JavaScript 키를 저장하면 지도가 표시됩니다.'
+          : 'Kakao 지도를 불러오지 못했습니다. 키와 허용 도메인을 확인해주세요.';
+      }
+      console.log('Map error:',err);
+    }
   },400);
 }
 
@@ -1557,6 +1614,7 @@ function renderLessonsFromDB(club){
 window.addEventListener('DOMContentLoaded',()=>{
   if(getC()){document.getElementById('btnClaude').textContent='🔑 Claude ✓';document.getElementById('btnClaude').classList.add('ok');document.getElementById('claudeKey').value=getC();}
   if(getO()){document.getElementById('btnOAI').textContent='🎙 Voice ✓';document.getElementById('btnOAI').classList.add('ok');document.getElementById('oaiKey').value=getO();}
+  if(getK()){document.getElementById('btnKakao').textContent='🗺 Kakao ✓';document.getElementById('btnKakao').classList.add('ok');document.getElementById('kakaoKey').value=getK();}
   document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
   document.getElementById('infoInput').addEventListener('keydown',e=>{if(e.key==='Enter')doGolfInfo();});
   document.getElementById('weatherInput').addEventListener('keydown',e=>{if(e.key==='Enter')doWeather();});
