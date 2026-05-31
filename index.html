@@ -790,7 +790,7 @@ async function doSearch(){
   btn.disabled=true;btn.textContent='검색중';showHoleLoading();
   const sys=`Korean golf caddy AI. The user is asking about a specific golf course hole. Do TWO web searches:
 1. Search "[골프장명] [홀정보] 공략" for hole strategy info
-2. Search YouTube "[골프장명] 코스 공략" for real video URLs
+2. Suggest related YouTube search keywords, not direct video URLs
 
 IMPORTANT - Interpret the query correctly:
 - "남부CC 파3홀" = 남부컨트리클럽(South CC)의 파3(Par 3) 홀. NOT a driving range.
@@ -804,7 +804,7 @@ RULES:
 - par: "3","4", or "5" only. For 파3홀 queries, par must be "3".
 - distance: estimate if unknown (par3=120-200m, par4=350-420m, par5=480-550m).
 - difficulty: "상","중", or "하" only.
-- videos: find real YouTube URLs. Search "[골프장명] 파3홀 공략" or "[골프장명] 코스".
+- videos: do not invent direct video URLs. Return only search-style titles related to the course/hole.
 - strategies: exactly 3 items.
 
 {"courseName":"남부컨트리클럽","holeName":"파3홀","par":"3","distance":"150m","difficulty":"상","holeChar":"아일랜드그린으로 유명한 명홀","hazards":[{"type":"danger","label":"워터해저드","desc":"그린 주변 물 위험"},{"type":"warning","label":"벙커","desc":"그린 주변 벙커"}],"strategies":[{"title":"클럽선택","detail":"바람 고려해 1클럽 길게"},{"title":"티샷목표","detail":"그린 중앙 겨냥"},{"title":"멘탈관리","detail":"파 목표로 안전하게"}],"proTip":"짧아도 욕심내지 말고 중앙 공략","videos":[{"title":"남부CC 파3홀 공략","channel":"채널명","url":"https://www.youtube.com/results?search_query=남부CC+파3홀+공략"}],"sources":"웹검색"}
@@ -814,6 +814,35 @@ Output ONLY the JSON object.`;
     renderHole(result,q);
   }catch(e){hideHoleLoading();document.getElementById('holeErrMsg').textContent='오류: '+e.message;document.getElementById('holeErr').classList.add('on');}
   finally{btn.disabled=false;btn.textContent='검색';}
+}
+
+function makeYouTubeSearchUrl(query){
+  return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query);
+}
+
+function buildHoleVideoCards(r,q){
+  const course=(r.courseName||'').trim();
+  const hole=(r.holeName||'').trim();
+  const base=[`${course} ${hole} 공략`, `${course} 코스 공략`, `${q} 골프`]
+    .map(x=>x.replace(/\s+/g,' ').trim())
+    .filter(Boolean);
+
+  if(Array.isArray(r.videos)){
+    r.videos.forEach(v=>{
+      const title=(v?.title||'').replace(/%[0-9A-F]{2}/gi,'').trim();
+      if(title && /골프|cc|CC|컨트리|코스|홀|공략|파3|파4|파5/i.test(title)){
+        base.push(title);
+      }
+    });
+  }
+
+  const seen=new Set();
+  return base.filter(text=>{
+    const key=text.toLowerCase();
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  }).slice(0,3).map(text=>({title:text,url:makeYouTubeSearchUrl(text)}));
 }
 
 function renderHole(r,q){
@@ -839,6 +868,8 @@ function renderHole(r,q){
   // Difficulty
   const fmtDiff = (!r.difficulty||r.difficulty.includes('확인')||r.difficulty.includes('정보')||r.difficulty==='-') ? '중' : r.difficulty;
   const holeSummary=`${r.courseName} ${r.holeName}. 파${r.par}, 거리 ${r.distance}, 난이도 ${r.difficulty}. ${r.holeChar}. ${(r.strategies||[]).slice(0,3).map(s=>s.title+': '+s.detail).join('. ')}. ${r.proTip?'프로 팁: '+r.proTip:''}`;
+  const videoCards=buildHoleVideoCards(r,q);
+  const videosHTML=videoCards.length?`<div class="card fade-up"><div class="card-hd"><span class="card-hd-icon">📹</span><span class="card-hd-title">관련 유튜브 검색</span></div><div class="card-body"><div class="vid-list">${videoCards.map(v=>`<a class="vid-card" href="${v.url}" target="_blank" rel="noopener"><div class="vid-thumb">🎬<div class="play">▶</div></div><div class="vid-info"><div class="vid-title">${v.title}</div><div class="vid-meta">YouTube에서 이 검색어로 보기</div></div></a>`).join('')}</div></div></div>`:'';
   res.innerHTML=`
   <div class="res-meta"><span class="res-badge">AI 검색</span><span class="res-query">"${q}"</span></div>
   <div class="hole-card fade-up">
@@ -856,7 +887,7 @@ function renderHole(r,q){
   </div>`:''}
   ${r.hazards?.length?`<div class="card fade-up"><div class="card-hd"><span class="card-hd-icon">⚠️</span><span class="card-hd-title">주요 위험요소</span></div><div class="card-body"><div class="haz-tags">${r.hazards.map(h=>`<div class="htag ${h.type||'info'}">${h.label}</div>`).join('')}</div>${r.hazards.map(h=>`<div class="haz-desc"><strong>${h.label}</strong> — ${h.desc}</div>`).join('')}</div></div>`:''}
   ${r.strategies?.length?`<div class="card fade-up"><div class="card-hd"><span class="card-hd-icon">🎯</span><span class="card-hd-title">홀 공략법</span></div><div class="card-body">${r.strategies.map((s,i)=>`<div class="strat-item"><div class="strat-num">${i+1}</div><div class="strat-txt"><strong>${s.title}</strong><br>${s.detail}</div></div>`).join('')}${r.proTip?`<div class="pro-tip">💡 <strong>Pro Tip</strong> — ${r.proTip}</div>`:''}</div></div>`:''}
-  ${r.videos?.length?`<div class="card fade-up"><div class="card-hd"><span class="card-hd-icon">📹</span><span class="card-hd-title">관련 유튜브 영상</span></div><div class="card-body"><div class="vid-list">${r.videos.map(v=>`<a class="vid-card" href="${v.url}" target="_blank"><div class="vid-thumb">🎬<div class="play">▶</div></div><div class="vid-info"><div class="vid-title">${v.title}</div><div class="vid-meta">${v.channel||'YouTube'}</div></div></a>`).join('')}</div></div></div>`:''}
+  ${videosHTML}
   <div class="src-row"><div class="src-dot"></div><span class="src-txt">${r.sources||'웹 검색 기반 AI 분석'} · 실제와 다를 수 있음</span></div>`;
 }
 
